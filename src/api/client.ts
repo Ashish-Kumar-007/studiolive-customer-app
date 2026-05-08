@@ -1,0 +1,44 @@
+import axios from 'axios';
+import * as SecureStore from 'expo-secure-store';
+
+// 📱 Using your computer's LAN IP so the phone can reach the backend
+const BASE_URL = 'http://192.168.29.155:3000';
+
+export const apiClient = axios.create({
+  baseURL: BASE_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+apiClient.interceptors.request.use(async (config) => {
+  const token = await SecureStore.getItemAsync('access_token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+}, (error) => {
+  return Promise.reject(error);
+});
+
+apiClient.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    if (error.response?.status === 401) {
+      console.log('[AUTH] Session expired, logging out');
+      try {
+        const { logout } = (await import('../store/authStore')).useAuthStore.getState();
+        await logout();
+      } catch (err) {
+        console.error('Logout during 401 failed', err);
+      }
+      return new Promise(() => { }); // Silence the error as we're redirecting to login
+    }
+
+    if (error.response?.status === 403) {
+      console.error(`[AUTH] 403 Forbidden: ${error.config?.url}`);
+    }
+
+    return Promise.reject(error);
+  }
+);
