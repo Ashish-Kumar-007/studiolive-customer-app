@@ -33,6 +33,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   isInitialized: false,
   biometricsEnabled: false,
   setAuth: async (user, token) => {
+    console.log('[AUTH] Setting session state');
     await SecureStore.setItemAsync('access_token', token);
     await SecureStore.setItemAsync('user_data', JSON.stringify(user));
     set({ user, token, isAuthenticated: true, isInitialized: true });
@@ -42,6 +43,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     set({ biometricsEnabled: enabled });
   },
   logout: async () => {
+    console.log('[AUTH] Terminating session');
     await SecureStore.deleteItemAsync('access_token');
     await SecureStore.deleteItemAsync('user_data');
     set({ user: null, token: null, isAuthenticated: false, isInitialized: true });
@@ -52,6 +54,8 @@ export const useAuthStore = create<AuthState>((set) => ({
       const userData = await SecureStore.getItemAsync('user_data');
       const bioEnabled = await SecureStore.getItemAsync('biometrics_enabled');
 
+      console.log(`[AUTH] Initializing state: Token found=${!!token}, User found=${!!userData}`);
+
       set({
         biometricsEnabled: bioEnabled === 'true',
         isInitialized: true,
@@ -59,10 +63,13 @@ export const useAuthStore = create<AuthState>((set) => ({
           user: JSON.parse(userData),
           token,
           isAuthenticated: true,
-        } : {})
+        } : {
+          isAuthenticated: false
+        })
       });
     } catch (e) {
-      set({ isInitialized: true });
+      console.error('[AUTH] Init failed', e);
+      set({ isInitialized: true, isAuthenticated: false });
     }
   },
 }));

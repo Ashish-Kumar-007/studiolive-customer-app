@@ -1,20 +1,17 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, RefreshControl, Dimensions, TouchableOpacity, ActivityIndicator, Platform } from 'react-native';
+import React, { useEffect, useState, useCallback } from 'react';
+import { View, Text, StyleSheet, ScrollView, RefreshControl, Dimensions, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme, Spacing, Radius } from '../../../src/constants/theme';
 import { useAuthStore } from '../../../src/store/authStore';
 import { apiClient } from '../../../src/api/client';
 import { 
   CircleDollarSign, 
-  Users, 
-  Target,
   Trophy,
   Activity,
   ChevronRight,
   TrendingUp,
   ArrowRight,
-  Filter,
-  BarChart2,
+  Target,
   Gem
 } from 'lucide-react-native';
 
@@ -31,15 +28,15 @@ export default function Reporting() {
   const theme = useTheme();
   const styles = createStyles(theme);
   const { user, isAuthenticated } = useAuthStore();
-  const [summary, setSummary] = useState<any>(null);
   const [finance, setFinance] = useState<FinanceData | null>(null);
+  const [summary, setSummary] = useState<any>(null);
   const [leaderboard, setLeaderboard] = useState<any[]>([]);
   const [staffStats, setStaffStats] = useState<any>(null);
   const [selectedStaffId, setSelectedStaffId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [staffLoading, setStaffLoading] = useState(false);
 
-  const fetchReports = async () => {
+  const fetchReports = useCallback(async () => {
     setLoading(true);
     const isAdminOrManager = user?.role === 'ADMIN' || user?.role === 'MANAGER';
 
@@ -58,26 +55,13 @@ export default function Reporting() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user?.role, apiClient]);
 
   useEffect(() => {
-    if (!isAuthenticated) return;
-    fetchReports();
-  }, [isAuthenticated]);
+    if (isAuthenticated) fetchReports();
+  }, [isAuthenticated, fetchReports]);
 
-  if (user?.role !== 'ADMIN' && user?.role !== 'MANAGER') {
-    return (
-      <View style={styles.deniedState}>
-        <LinearGradient colors={[theme.error + '20', theme.background]} style={styles.deniedBg}>
-          <Target size={48} color={theme.error} />
-          <Text style={styles.deniedTitle}>Admin Access Required</Text>
-          <Text style={styles.deniedText}>The reporting suite is reserved for organizational leads and managers.</Text>
-        </LinearGradient>
-      </View>
-    );
-  }
-
-  const viewStaffStats = async (id: string) => {
+  const viewStaffStats = useCallback(async (id: string) => {
     if (selectedStaffId === id) {
       setSelectedStaffId(null);
       setStaffStats(null);
@@ -92,7 +76,7 @@ export default function Reporting() {
     } finally {
       setStaffLoading(false);
     }
-  };
+  }, [selectedStaffId, apiClient]);
 
   const renderFinancialPulse = () => {
     if (!finance) return null;
@@ -178,6 +162,8 @@ export default function Reporting() {
     );
   };
 
+  const isAuthorized = user?.role === 'ADMIN' || user?.role === 'MANAGER';
+
   return (
     <View style={styles.container}>
       <ScrollView 
@@ -190,65 +176,77 @@ export default function Reporting() {
           <Text style={styles.headerSub}>Enterprise Performance Tracking</Text>
         </View>
 
-        {renderFinancialPulse()}
-        {renderFunnel()}
-
-        <View style={styles.section}>
-          <View style={styles.staffHeader}>
-            <Text style={styles.sectionHeading}>Elite Performers</Text>
-            <Trophy size={18} color="#F59E0B" />
+        {!isAuthorized ? (
+          <View style={styles.deniedState}>
+            <LinearGradient colors={[theme.error + '20', theme.background]} style={styles.deniedBg}>
+              <Target size={48} color={theme.error} />
+              <Text style={styles.deniedTitle}>Admin Access Required</Text>
+              <Text style={styles.deniedText}>The reporting suite is reserved for organizational leads and managers.</Text>
+            </LinearGradient>
           </View>
+        ) : (
+          <>
+            {renderFinancialPulse()}
+            {renderFunnel()}
 
-          {leaderboard.map((staff, index) => (
-            <View key={staff.id} style={styles.staffItem}>
-              <TouchableOpacity 
-                onPress={() => viewStaffStats(staff.id)}
-                activeOpacity={0.7}
-                style={[styles.staffCore, selectedStaffId === staff.id && styles.staffCoreActive]}
-              >
-                <View style={[styles.staffRank, index === 0 && styles.staffRankGold]}>
-                  <Text style={[styles.staffRankText, index === 0 && { color: '#fff' }]}>{index + 1}</Text>
-                </View>
-                <View style={styles.staffInfo}>
-                  <Text style={styles.staffName}>{staff.name}</Text>
-                  <View style={styles.staffBadges}>
-                    <View style={styles.miniBadge}>
-                      <Text style={styles.miniBadgeText}>{staff.leadsCount} LEADS</Text>
+            <View style={styles.section}>
+              <View style={styles.staffHeader}>
+                <Text style={styles.sectionHeading}>Elite Performers</Text>
+                <Trophy size={18} color="#F59E0B" />
+              </View>
+
+              {leaderboard.map((staff, index) => (
+                <View key={staff.id} style={styles.staffItem}>
+                  <TouchableOpacity 
+                    onPress={() => viewStaffStats(staff.id)}
+                    activeOpacity={0.7}
+                    style={[styles.staffCore, selectedStaffId === staff.id && styles.staffCoreActive]}
+                  >
+                    <View style={[styles.staffRank, index === 0 && styles.staffRankGold]}>
+                      <Text style={[styles.staffRankText, index === 0 && { color: '#fff' }]}>{index + 1}</Text>
                     </View>
-                  </View>
-                </View>
-                <View style={styles.staffAction}>
-                  <Text style={styles.staffActionValue}>{staff.conversions}</Text>
-                  <Text style={styles.staffActionLabel}>WINS</Text>
-                </View>
-                <ChevronRight size={16} color={theme.border} />
-              </TouchableOpacity>
+                    <View style={styles.staffInfo}>
+                      <Text style={styles.staffName}>{staff.name}</Text>
+                      <View style={styles.staffBadges}>
+                        <View style={styles.miniBadge}>
+                          <Text style={styles.miniBadgeText}>{staff.leadsCount} LEADS</Text>
+                        </View>
+                      </View>
+                    </View>
+                    <View style={styles.staffAction}>
+                      <Text style={styles.staffActionValue}>{staff.conversions}</Text>
+                      <Text style={styles.staffActionLabel}>WINS</Text>
+                    </View>
+                    <ChevronRight size={16} color={theme.border} />
+                  </TouchableOpacity>
 
-              {selectedStaffId === staff.id && (
-                <View style={styles.staffDropdown}>
-                  {staffLoading ? (
-                    <ActivityIndicator size="small" color={theme.admin} />
-                  ) : staffStats && (
-                    <View style={styles.dropdownGrid}>
-                      <View style={styles.dropdownBox}>
-                        <Activity size={16} color={theme.admin} />
-                        <Text style={styles.dropdownValue}>{staffStats.totalLeads}</Text>
-                        <Text style={styles.dropdownLabel}>Capture</Text>
-                      </View>
-                      <View style={styles.dropdownBox}>
-                        <TrendingUp size={16} color={theme.success} />
-                        <Text style={styles.dropdownValue}>
-                          {((staffStats.conversions / (staffStats.totalLeads || 1)) * 100).toFixed(0)}%
-                        </Text>
-                        <Text style={styles.dropdownLabel}>Success Rate</Text>
-                      </View>
+                  {selectedStaffId === staff.id && (
+                    <View style={styles.staffDropdown}>
+                      {staffLoading ? (
+                        <ActivityIndicator size="small" color={theme.admin} />
+                      ) : staffStats && (
+                        <View style={styles.dropdownGrid}>
+                          <View style={styles.dropdownBox}>
+                            <Activity size={16} color={theme.admin} />
+                            <Text style={styles.dropdownValue}>{staffStats.totalLeads}</Text>
+                            <Text style={styles.dropdownLabel}>Capture</Text>
+                          </View>
+                          <View style={styles.dropdownBox}>
+                            <TrendingUp size={16} color={theme.success} />
+                            <Text style={styles.dropdownValue}>
+                              {((staffStats.conversions / (staffStats.totalLeads || 1)) * 100).toFixed(0)}%
+                            </Text>
+                            <Text style={styles.dropdownLabel}>Success Rate</Text>
+                          </View>
+                        </View>
+                      )}
                     </View>
                   )}
                 </View>
-              )}
+              ))}
             </View>
-          ))}
-        </View>
+          </>
+        )}
       </ScrollView>
     </View>
   );

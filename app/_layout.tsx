@@ -31,38 +31,31 @@ export default function RootLayout() {
     if (!isInitialized || !navigationState?.key) return;
     
     const segmentPath = segments.join('/');
-    console.log(`[NAV] Checking route stability: ${segmentPath} | Auth: ${isAuthenticated}`);
     const inAuthGroup = segments[0] === '(auth)';
-    const currentScreen = segments[segments.length - 1];
-    
-    // Safety check for user state
-    if (isAuthenticated && !user) {
-      console.warn('[AUTH] Authenticated but user object missing, logging out to reset state');
-      logout();
-      return;
-    }
+    const needsVerification = user?.emailVerified === false;
+    const needsPasswordChange = user?.isFirstLogin === true;
 
-    const needsVerification = user && !user.emailVerified;
-    const needsPasswordChange = user && user.emailVerified && user.isFirstLogin;
+    console.log(`[NAV] Guard sync: ${segmentPath} | Auth: ${isAuthenticated} | Init: ${isInitialized}`);
 
     if (!isAuthenticated) {
+      // Redirect to login only if NOT in auth group
       if (!inAuthGroup) {
-        console.log('[AUTH] Not authenticated, redirecting to login');
+        console.log('[AUTH] Access denied, redirecting to login');
         router.replace('/(auth)/login');
       }
     } else {
-      if (needsVerification && currentScreen !== 'verify') {
-        console.log('[AUTH] Email not verified, redirecting to verify');
+      // Authenticated users
+      if (needsVerification && segmentPath !== '(auth)/verify') {
         router.replace('/(auth)/verify');
-      } else if (needsPasswordChange && currentScreen !== 'change-password') {
-        console.log('[AUTH] First login, redirecting to password change');
-        router.replace('/(auth)/change-password');
-      } else if (!needsVerification && !needsPasswordChange && !segments.includes('(app)')) {
-        console.log('[AUTH] Verified, redirecting to main app');
+      } else if (needsPasswordChange && segmentPath !== '(auth)/onboarding') {
+        router.replace('/(auth)/onboarding');
+      } else if (!needsVerification && !needsPasswordChange && inAuthGroup) {
+        // Redirect away from auth group if verified and finished onboarding
+        console.log('[AUTH] Verified session, redirecting to app core');
         router.replace('/(app)');
       }
     }
-  }, [isAuthenticated, segments.join('/'), isInitialized, navigationState?.key, user?.emailVerified, user?.isFirstLogin]);
+  }, [isAuthenticated, segments, isInitialized, navigationState?.key, user?.emailVerified, user?.isFirstLogin]);
 
   return (
     <>

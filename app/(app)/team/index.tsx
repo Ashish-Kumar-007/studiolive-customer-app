@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert, Modal, ScrollView, KeyboardAvoidingView, Platform, RefreshControl } from 'react-native';
 import { useTheme, Spacing, Radius } from '../../../src/constants/theme';
 import { apiClient } from '../../../src/api/client';
@@ -55,7 +55,7 @@ const TeamManagement = () => {
     { label: 'Editor', value: 'EDITOR', color: theme.editor },
   ];
 
-  const fetchMembers = async (pageNum = 1, isRefresh = false) => {
+  const fetchMembers = useCallback(async (pageNum = 1, isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
     else if (pageNum === 1) setLoading(true);
 
@@ -80,22 +80,21 @@ const TeamManagement = () => {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, [apiClient]);
 
   useEffect(() => {
-    if (!isAuthenticated) return;
-    fetchMembers(1);
-  }, [isAuthenticated]);
+    if (isAuthenticated) fetchMembers(1);
+  }, [isAuthenticated, fetchMembers]);
 
-  const loadMore = () => {
+  const loadMore = useCallback(() => {
     if (page < lastPage && !loading) {
       const next = page + 1;
       setPage(next);
       fetchMembers(next);
     }
-  };
+  }, [page, lastPage, loading, fetchMembers]);
 
-  const handleSetTarget = async () => {
+  const handleSetTarget = useCallback(async () => {
     if (!selectedStaff || !targetCount) return;
     setSettingTarget(true);
     try {
@@ -113,9 +112,9 @@ const TeamManagement = () => {
     } finally {
       setSettingTarget(false);
     }
-  };
+  }, [selectedStaff, targetCount, targetNotes, apiClient]);
 
-  const handleDelete = async (member: Member) => {
+  const handleDelete = useCallback(async (member: Member) => {
     if (user?.role === 'MANAGER' && (member.role === 'ADMIN' || member.role === 'MANAGER')) {
       Alert.alert('Permission Denied', 'Managers can only remove staff members.');
       return;
@@ -141,9 +140,9 @@ const TeamManagement = () => {
         }
       ]
     );
-  };
+  }, [user?.role, fetchMembers, apiClient]);
 
-  const handleRegister = async () => {
+  const handleRegister = useCallback(async () => {
     if (!form.name || !form.email || !form.phone) {
       Alert.alert('Required', 'Please fill in all fields.');
       return;
@@ -161,116 +160,118 @@ const TeamManagement = () => {
     } finally {
       setSubmitting(false);
     }
-  };
+  }, [form, fetchMembers, apiClient]);
 
   const AVATAR_COLORS = [
     '#7C3AED', '#0EA5E9', '#10B981', '#F59E0B', '#EF4444', 
     '#EC4899', '#8B5CF6', '#06B6D4', '#84CC16', '#6366F1'
   ];
 
-  const getAvatarColor = (name: string) => {
+  const getAvatarColor = useCallback((name: string) => {
     let hash = 0;
     for (let i = 0; i < name.length; i++) {
       hash = name.charCodeAt(i) + ((hash << 5) - hash);
     }
     return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
-  };
+  }, []);
 
-  const getInitials = (name: string) => {
+  const getInitials = useCallback((name: string) => {
     return name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
-  };
-
-  if (user?.role !== 'ADMIN' && user?.role !== 'MANAGER') {
-    return (
-      <View style={styles.emptyState}>
-        <Text style={styles.emptyText}>You are not authorized to access team management.</Text>
-      </View>
-    );
-  }
+  }, []);
 
   return (
     <View style={styles.container}>
-      {/* Premium Header */}
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.title}>Team Core</Text>
-          <Text style={styles.subtitle}>Directory & Access Management</Text>
+      {user?.role !== 'ADMIN' && user?.role !== 'MANAGER' ? (
+        <View style={styles.emptyState}>
+          <Text style={styles.emptyText}>You are not authorized to access team management.</Text>
         </View>
-        <TouchableOpacity style={styles.addButton} onPress={() => setShowForm(true)} activeOpacity={0.8}>
-          <UserPlus color="#fff" size={18} />
-          <Text style={styles.addButtonText}>Add Staff</Text>
-        </TouchableOpacity>
-      </View>
-
-      <FlatList
-        data={members}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.list}
-        showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => fetchMembers(1, true)} tintColor={theme.admin} />}
-        onEndReached={loadMore}
-        onEndReachedThreshold={0.5}
-        ListEmptyComponent={() => !loading ? (
-          <View style={styles.emptyState}>
-            <Users size={48} color={theme.border} />
-            <Text style={styles.emptyText}>No team members found</Text>
+      ) : (
+        <>
+          {/* Premium Header */}
+          <View style={styles.header}>
+            <View>
+              <Text style={styles.title}>Team Core</Text>
+              <Text style={styles.subtitle}>Directory & Access Management</Text>
+            </View>
+            <TouchableOpacity style={styles.addButton} onPress={() => setShowForm(true)} activeOpacity={0.8}>
+              <UserPlus color="#fff" size={18} />
+              <Text style={styles.addButtonText}>Add Staff</Text>
+            </TouchableOpacity>
           </View>
-        ) : null}
-        renderItem={({ item }) => {
-          const accentColor = getAvatarColor(item.name);
-          return (
-            <TouchableOpacity style={styles.memberCard} activeOpacity={0.9}>
-              <View style={[styles.cardAccent, { backgroundColor: accentColor }]} />
-              <View style={styles.cardMain}>
-                <View style={styles.memberHeader}>
-                  <View style={styles.memberMainInfo}>
-                    <View style={[styles.avatarCircle, { backgroundColor: accentColor + '15' }]}>
-                      <Text style={[styles.avatarText, { color: accentColor }]}>{getInitials(item.name)}</Text>
-                    </View>
-                    <View style={styles.nameSection}>
-                      <View style={styles.nameRow}>
-                        <Text style={styles.memberName}>{item.name}</Text>
-                        {item.emailVerified && !item.isFirstLogin && (
-                          <BadgeCheck size={14} color={theme.admin} />
+
+          <FlatList
+            data={members}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={styles.list}
+            showsVerticalScrollIndicator={false}
+            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => fetchMembers(1, true)} tintColor={theme.admin} />}
+            onEndReached={loadMore}
+            onEndReachedThreshold={0.5}
+            ListEmptyComponent={() => !loading ? (
+              <View style={styles.emptyState}>
+                <Users size={48} color={theme.border} />
+                <Text style={styles.emptyText}>No team members found</Text>
+              </View>
+            ) : (
+              <ActivityIndicator color={theme.admin} style={{ marginTop: 40 }} />
+            )}
+            renderItem={({ item }) => {
+              const accentColor = getAvatarColor(item.name);
+              return (
+                <TouchableOpacity style={styles.memberCard} activeOpacity={0.9}>
+                  <View style={[styles.cardAccent, { backgroundColor: accentColor }]} />
+                  <View style={styles.cardMain}>
+                    <View style={styles.memberHeader}>
+                      <View style={styles.memberMainInfo}>
+                        <View style={[styles.avatarCircle, { backgroundColor: accentColor + '15' }]}>
+                          <Text style={[styles.avatarText, { color: accentColor }]}>{getInitials(item.name)}</Text>
+                        </View>
+                        <View style={styles.nameSection}>
+                          <View style={styles.nameRow}>
+                            <Text style={styles.memberName}>{item.name}</Text>
+                            {item.emailVerified && !item.isFirstLogin && (
+                              <BadgeCheck size={14} color={theme.admin} />
+                            )}
+                          </View>
+                          <RoleBadge role={item.role as any} />
+                        </View>
+                      </View>
+                      <View style={styles.actionRow}>
+                        {item.role === 'MARKETING' && (
+                          <TouchableOpacity 
+                            onPress={() => { setSelectedStaff(item); setShowTargetForm(true); }}
+                            style={styles.actionBtn}
+                          >
+                            <Target size={16} color={theme.marketing} />
+                          </TouchableOpacity>
+                        )}
+                        {item.id !== user?.id && !(user?.role === 'MANAGER' && item.role === 'ADMIN') && (
+                          <TouchableOpacity onPress={() => handleDelete(item)} style={[styles.actionBtn, styles.deleteBtn]}>
+                            <Trash2 size={16} color={theme.error} />
+                          </TouchableOpacity>
                         )}
                       </View>
-                      <RoleBadge role={item.role as any} />
                     </View>
-                  </View>
-                  <View style={styles.actionRow}>
-                    {item.role === 'MARKETING' && (
-                      <TouchableOpacity 
-                        onPress={() => { setSelectedStaff(item); setShowTargetForm(true); }}
-                        style={styles.actionBtn}
-                      >
-                        <Target size={16} color={theme.marketing} />
-                      </TouchableOpacity>
-                    )}
-                    {item.id !== user?.id && !(user?.role === 'MANAGER' && item.role === 'ADMIN') && (
-                      <TouchableOpacity onPress={() => handleDelete(item)} style={[styles.actionBtn, styles.deleteBtn]}>
-                        <Trash2 size={16} color={theme.error} />
-                      </TouchableOpacity>
-                    )}
-                  </View>
-                </View>
 
-                <View style={styles.memberDetails}>
-                  <View style={styles.detailRow}>
-                    <Mail size={12} color={theme.textDark} />
-                    <Text style={styles.detailText}>{item.email}</Text>
-                  </View>
-                  {item.phone && (
-                    <View style={styles.detailRow}>
-                      <Phone size={12} color={theme.textDark} />
-                      <Text style={styles.detailText}>{item.phone}</Text>
+                    <View style={styles.memberDetails}>
+                      <View style={styles.detailRow}>
+                        <Mail size={12} color={theme.textDark} />
+                        <Text style={styles.detailText}>{item.email}</Text>
+                      </View>
+                      {item.phone && (
+                        <View style={styles.detailRow}>
+                          <Phone size={12} color={theme.textDark} />
+                          <Text style={styles.detailText}>{item.phone}</Text>
+                        </View>
+                      )}
                     </View>
-                  )}
-                </View>
-              </View>
-            </TouchableOpacity>
-          );
-        }}
-      />
+                  </View>
+                </TouchableOpacity>
+              );
+            }}
+          />
+        </>
+      )}
 
       {/* Target Modal */}
       <Modal visible={showTargetForm} transparent animationType="fade">

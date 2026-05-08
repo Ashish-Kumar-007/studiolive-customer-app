@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, Platform, ActivityIndicator, Alert, Modal, TextInput } from 'react-native';
 import { useTheme, Radius, Spacing } from '../../src/constants/theme';
 import { Bell, Shield, Smartphone, Globe, Moon, ChevronRight, Volume2, Fingerprint, Settings, Sparkles, Zap, ShieldAlert, ArrowLeft, CheckCircle2 } from 'lucide-react-native';
@@ -32,16 +32,16 @@ export default function SettingsScreen() {
   const [verifyPassword, setVerifyPassword] = useState('');
   const [syncing, setSyncing] = useState(false);
 
-  const getThemeLabel = (mode: ThemeMode) => {
+  const getThemeLabel = useCallback((mode: ThemeMode) => {
     switch (mode) {
       case 'light': return 'Studio Light';
       case 'dark': return 'Elite Dark';
       case 'system': return 'System Default';
       default: return 'System Default';
     }
-  };
+  }, []);
 
-  const handleToggleBiometrics = async () => {
+  const handleToggleBiometrics = useCallback(async () => {
     if (biometricsEnabled) {
       await setBiometricsEnabled(false);
       await SecureStore.deleteItemAsync('user_password');
@@ -57,9 +57,9 @@ export default function SettingsScreen() {
     }
 
     setShowBioSync(true);
-  };
+  }, [biometricsEnabled, setBiometricsEnabled]);
 
-  const confirmBioSync = async () => {
+  const confirmBioSync = useCallback(async () => {
     if (!verifyPassword) {
       Alert.alert('Required', 'Please enter your current password to sync biometrics.');
       return;
@@ -79,17 +79,17 @@ export default function SettingsScreen() {
     } finally {
       setSyncing(false);
     }
-  };
+  }, [user?.email, verifyPassword, setBiometricsEnabled]);
 
-  const toggleSwitch = (key: string, section: 'notifications' | 'security') => {
+  const toggleSwitch = useCallback((key: string, section: 'notifications' | 'security') => {
     if (section === 'notifications') {
       setNotifications(prev => ({ ...prev, [key]: !prev[key as keyof typeof notifications] }));
     } else {
       setSecurity(prev => ({ ...prev, [key]: !prev[key as keyof typeof security] }));
     }
-  };
+  }, [notifications, security]);
 
-  const renderSettingRow = (icon: any, title: string, subtitle: string, value: any, onValueChange?: () => void, type: 'switch' | 'link' = 'switch') => (
+  const renderSettingRow = useCallback((icon: any, title: string, subtitle: string, value: any, onValueChange?: () => void, type: 'switch' | 'link' = 'switch') => (
     <View style={[styles.settingRow, { borderBottomColor: theme.border + '50' }]}>
       <View style={styles.settingLeft}>
         <View style={[styles.iconBox, { backgroundColor: theme.surfaceLight, borderColor: theme.border }]}>
@@ -111,7 +111,7 @@ export default function SettingsScreen() {
         <ChevronRight size={18} color={theme.textDim} />
       )}
     </View>
-  );
+  ), [theme, styles]);
 
   return (
     <View style={[styles.base, { backgroundColor: theme.background }]}>

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Alert, TouchableOpacity } from 'react-native';
 import { useTheme, Spacing, Radius } from '../../../src/constants/theme';
 import { useAuthStore } from '../../../src/store/authStore';
@@ -18,7 +18,7 @@ export default function MyTarget() {
   const [target, setTarget] = useState<TargetData | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchTarget = async () => {
+  const fetchTarget = useCallback(async () => {
     try {
       const response = await apiClient.get('/users/me/target');
       setTarget(response.data);
@@ -28,75 +28,72 @@ export default function MyTarget() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [apiClient]);
 
   useEffect(() => {
-    if (!isAuthenticated) return;
-    fetchTarget();
-  }, [isAuthenticated]);
-
-  if (loading) {
-    return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color={theme.marketing} />
-      </View>
-    );
-  }
-
-  const progressPercent = target && target.weekly > 0 ? (target.currentProgress / target.weekly) * 100 : 0;
+    if (isAuthenticated) fetchTarget();
+  }, [isAuthenticated, fetchTarget]);
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Weekly Performance</Text>
-        <Text style={styles.headerSubtitle}>Monitor your progress against assigned quotas</Text>
-      </View>
-
-      <View style={styles.progressCard}>
-        <View style={styles.cardHeader}>
-          <Target color={theme.marketing} size={24} />
-          <Text style={styles.cardTitle}>Current Week Progress</Text>
+    <View style={styles.container}>
+      {loading ? (
+        <View style={styles.center}>
+          <ActivityIndicator size="large" color={theme.marketing} />
         </View>
-        
-        <View style={styles.statsRow}>
-          <View>
-            <Text style={styles.statValue}>{target?.currentProgress}</Text>
-            <Text style={styles.statLabel}>Achieved</Text>
+      ) : (
+        <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+          <View style={styles.header}>
+            <Text style={styles.headerTitle}>Weekly Performance</Text>
+            <Text style={styles.headerSubtitle}>Monitor your progress against assigned quotas</Text>
           </View>
-          <View style={styles.divider} />
-          <View>
-            <Text style={styles.statValue}>{target?.weekly}</Text>
-            <Text style={styles.statLabel}>Goal</Text>
+
+          <View style={styles.progressCard}>
+            <View style={styles.cardHeader}>
+              <Target color={theme.marketing} size={24} />
+              <Text style={styles.cardTitle}>Current Week Progress</Text>
+            </View>
+            
+            <View style={styles.statsRow}>
+              <View>
+                <Text style={styles.statValue}>{target?.currentProgress}</Text>
+                <Text style={styles.statLabel}>Achieved</Text>
+              </View>
+              <View style={styles.divider} />
+              <View>
+                <Text style={styles.statValue}>{target?.weekly}</Text>
+                <Text style={styles.statLabel}>Goal</Text>
+              </View>
+            </View>
+
+            <View style={styles.progressBarContainer}>
+              <View style={[styles.progressBar, { width: `${Math.min(target ? (target.currentProgress / target.weekly) * 100 : 0, 100)}%`, backgroundColor: theme.marketing }]} />
+            </View>
+            <Text style={styles.progressText}>{Math.round(target ? (target.currentProgress / target.weekly) * 100 : 0)}% of weekly target reached</Text>
           </View>
-        </View>
 
-        <View style={styles.progressBarContainer}>
-          <View style={[styles.progressBar, { width: `${Math.min(progressPercent, 100)}%`, backgroundColor: theme.marketing }]} />
-        </View>
-        <Text style={styles.progressText}>{Math.round(progressPercent)}% of weekly target reached</Text>
-      </View>
+          <View style={styles.grid}>
+            <View style={[styles.miniCard, { borderLeftColor: theme.manager, borderLeftWidth: 4 }]}>
+              <Award size={20} color={theme.manager} />
+              <Text style={styles.miniLabel}>Daily Avg Goal</Text>
+              <Text style={styles.miniValue}>{(target!.weekly / 6).toFixed(1)}</Text>
+            </View>
+            <View style={[styles.miniCard, { borderLeftColor: theme.videographer, borderLeftWidth: 4 }]}>
+              <Clock size={20} color={theme.videographer} />
+              <Text style={styles.miniLabel}>Daily Setup</Text>
+              <Text style={styles.miniValue}>{target?.daily}</Text>
+            </View>
+          </View>
 
-      <View style={styles.grid}>
-        <View style={[styles.miniCard, { borderLeftColor: theme.manager, borderLeftWidth: 4 }]}>
-          <Award size={20} color={theme.manager} />
-          <Text style={styles.miniLabel}>Daily Avg Goal</Text>
-          <Text style={styles.miniValue}>{(target!.weekly / 6).toFixed(1)}</Text>
-        </View>
-        <View style={[styles.miniCard, { borderLeftColor: theme.videographer, borderLeftWidth: 4 }]}>
-          <Clock size={20} color={theme.videographer} />
-          <Text style={styles.miniLabel}>Daily Setup</Text>
-          <Text style={styles.miniValue}>{target?.daily}</Text>
-        </View>
-      </View>
-
-      <TouchableOpacity 
-        style={styles.historyBtn}
-        onPress={() => Alert.alert('Coming Soon', 'Detailed history tracking is in development.')}
-      >
-        <TrendingUp size={20} color={theme.text} />
-        <Text style={styles.historyBtnText}>View Achievement History</Text>
-      </TouchableOpacity>
-    </ScrollView>
+          <TouchableOpacity 
+            style={styles.historyBtn}
+            onPress={() => Alert.alert('Coming Soon', 'Detailed history tracking is in development.')}
+          >
+            <TrendingUp size={20} color={theme.text} />
+            <Text style={styles.historyBtnText}>View Achievement History</Text>
+          </TouchableOpacity>
+        </ScrollView>
+      )}
+    </View>
   );
 }
 

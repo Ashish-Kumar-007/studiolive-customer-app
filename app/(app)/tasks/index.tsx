@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Alert, RefreshControl } from 'react-native';
 import { useTheme, Spacing, Radius } from '../../../src/constants/theme';
 import { apiClient } from '../../../src/api/client';
@@ -31,14 +31,14 @@ export default function ProductionTasks() {
 
   const isAdminOrManager = user?.role === 'ADMIN' || user?.role === 'MANAGER';
 
-  const fetchTasks = async (pageNum = 1, isRefresh = false) => {
+  const fetchTasks = useCallback(async (pageNum = 1, isRefresh = false) => {
     if (!isAuthenticated) return;
     if (isRefresh) setRefreshing(true);
     else if (pageNum === 1) setLoading(true);
 
     try {
       const endpoint = isAdminOrManager ? '/tasks' : '/tasks/my';
-      const res = await apiClient.get(endpoint, { params: { page: pageNum, limit: 100 } }); // Fetch more for deduplication
+      const res = await apiClient.get(endpoint, { params: { page: pageNum, limit: 100 } });
 
       const resData = res.data;
       let rawData = [];
@@ -48,18 +48,14 @@ export default function ProductionTasks() {
         rawData = resData;
       }
 
-      // Priority: IN_PROGRESS > ASSIGNED > COMPLETED
       const statusOrder: Record<string, number> = { 'IN_PROGRESS': 3, 'ASSIGNED': 2, 'COMPLETED': 1 };
 
-      // Deduplicate: If a lead has both SHOOT and EDIT, show EDIT. 
-      // If a lead has multiple of same type, show latest.
       const leadMap = new Map<string, Task>();
       rawData.forEach((t: Task) => {
         const existing = leadMap.get(t.leadId);
         if (!existing) {
           leadMap.set(t.leadId, t);
         } else {
-          // Priority: EDIT > SHOOT
           if (t.type === 'EDIT' && existing.type === 'SHOOT') {
             leadMap.set(t.leadId, t);
           } else if (t.type === existing.type) {
@@ -81,7 +77,6 @@ export default function ProductionTasks() {
           const combined = [...prev, ...finalTasks];
           const secondMap = new Map<string, Task>();
           combined.forEach(ct => {
-             // Re-deduplicate combined list
              const ex = secondMap.get(ct.leadId);
              if (!ex || (ct.type === 'EDIT' && ex.type === 'SHOOT') || (ct.type === ex.type && statusOrder[ct.status] > statusOrder[ex.status])) {
                secondMap.set(ct.leadId, ct);
@@ -97,29 +92,30 @@ export default function ProductionTasks() {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, [isAuthenticated, isAdminOrManager, apiClient]);
 
   useEffect(() => {
-    if (!isAuthenticated) return;
-    setPage(1);
-    fetchTasks(1);
-  }, [isAuthenticated]);
+    if (isAuthenticated) {
+      setPage(1);
+      fetchTasks(1);
+    }
+  }, [isAuthenticated, fetchTasks]);
 
-  const loadMore = () => {
+  const loadMore = useCallback(() => {
     if (page < lastPage && !loading) {
       const next = page + 1;
       setPage(next);
       fetchTasks(next);
     }
-  };
+  }, [page, lastPage, loading, fetchTasks]);
 
-  const getStatusStyle = (status: string) => {
+  const getStatusStyle = useCallback((status: string) => {
     switch (status) {
       case 'COMPLETED': return { color: theme.success, bg: theme.success + '15' };
       case 'IN_PROGRESS': return { color: theme.warning, bg: theme.warning + '15' };
       default: return { color: theme.textDim, bg: theme.surfaceLight };
     }
-  };
+  }, [theme]);
 
   const handleInitializeEdit = (leadId: string) => {
     router.push({
@@ -140,6 +136,7 @@ export default function ProductionTasks() {
     const isOverdue = new Date(item.deadline) < new Date() && item.status !== 'COMPLETED';
     const isToday = new Date(item.deadline).toDateString() === new Date().toDateString();
     const canAssignEdit = isAdminOrManager && item.type === 'SHOOT' && item.status === 'COMPLETED';
+    const statusStyle = getStatusStyle(item.status);
 
     return (
       <View style={[styles.taskCard, isOverdue && styles.overdueCard]}>
@@ -153,8 +150,8 @@ export default function ProductionTasks() {
               <PlayCircle size={12} color={item.type === 'SHOOT' ? theme.videographer : theme.editor} />
               <Text style={[styles.typeTagText, { color: item.type === 'SHOOT' ? theme.videographer : theme.editor }]}>{item.type}</Text>
             </View>
-            <View style={[styles.statusBadge, { backgroundColor: getStatusStyle(item.status).bg }]}>
-              <Text style={[styles.statusBadgeText, { color: getStatusStyle(item.status).color }]}>{item.status}</Text>
+            <View style={[styles.statusBadge, { backgroundColor: statusStyle.bg }]}>
+              <Text style={[styles.statusBadgeText, { color: statusStyle.color }]}>{item.status}</Text>
             </View>
           </View>
 

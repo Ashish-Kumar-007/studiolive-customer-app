@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Modal, TextInput, ActivityIndicator, KeyboardAvoidingView, Platform, Dimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme, Spacing, Radius } from '../../src/constants/theme';
@@ -24,7 +24,7 @@ export default function ProfileScreen() {
   const [showPass, setShowPass] = useState(false);
   const [updating, setUpdating] = useState(false);
 
-  const getRoleColor = (role: string | undefined) => {
+  const getRoleColor = useCallback((role: string | undefined) => {
     const map: Record<string, string> = {
       ADMIN: theme.admin,
       MANAGER: theme.manager,
@@ -34,20 +34,20 @@ export default function ProfileScreen() {
       EDITOR: theme.editor,
     };
     return map[role || ''] || theme.textDim;
-  };
+  }, [theme]);
 
-  const roleColor = getRoleColor(user?.role);
+  const roleColor = useMemo(() => getRoleColor(user?.role), [user?.role, getRoleColor]);
 
-  const handleLogout = () => {
+  const handleLogout = useCallback(() => {
     setShowLogoutModal(true);
-  };
+  }, []);
 
-  const confirmLogout = () => {
+  const confirmLogout = useCallback(() => {
     setShowLogoutModal(false);
     logout();
-  };
+  }, [logout]);
 
-  const handleUpdatePassword = async () => {
+  const handleUpdatePassword = useCallback(async () => {
     if (newPassword.length < 6) {
       Alert.alert('Security Notice', 'Password must be at least 6 characters long.');
       return;
@@ -61,7 +61,6 @@ export default function ProfileScreen() {
     try {
       await apiClient.patch('/auth/change-password', { newPassword });
       
-      // Sync with biometrics if enabled
       if (biometricsEnabled) {
         await SecureStore.setItemAsync('user_password', newPassword);
       }
@@ -75,9 +74,9 @@ export default function ProfileScreen() {
     } finally {
       setUpdating(false);
     }
-  };
+  }, [newPassword, confirmPassword, biometricsEnabled, apiClient]);
 
-  const renderOption = (title: string, icon: any, color: string, onPress: () => void) => (
+  const renderOption = useCallback((title: string, icon: any, color: string, onPress: () => void) => (
     <TouchableOpacity style={styles.option} onPress={onPress}>
       <View style={[styles.iconBox, { backgroundColor: color + '15' }]}>
         {React.createElement(icon, { size: 20, color: color })}
@@ -85,7 +84,7 @@ export default function ProfileScreen() {
       <Text style={styles.optionTitle}>{title}</Text>
       <ShieldCheck size={16} color={theme.textDark} style={{ opacity: 0.3 }} />
     </TouchableOpacity>
-  );
+  ), [theme, styles]);
 
   return (
     <View style={styles.base}>

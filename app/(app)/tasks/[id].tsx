@@ -89,191 +89,169 @@ export default function TaskDetailsScreen() {
     }
   };
 
-  if (loading) {
-    return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color={theme.videographer} />
-      </View>
-    );
-  }
-
-  if (!task) {
-    return (
-      <View style={styles.center}>
-        <Text style={styles.emptyText}>Task not found.</Text>
-      </View>
-    );
-  }
-
-  const isShoot = task.type === 'SHOOT';
-  const accentColor = isShoot ? theme.videographer : theme.info;
-
-  const shootTask = task.lead?.tasks?.find(t => t.type === 'SHOOT');
-  const editTask = task.lead?.tasks?.find(t => t.type === 'EDIT');
-
   return (
     <View style={styles.container}>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-        {/* Header Hero */}
-        <LinearGradient
-          colors={[accentColor, accentColor + 'DD']}
-          style={styles.hero}
-        >
-          <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
-            <ChevronLeft color="#fff" size={24} />
-          </TouchableOpacity>
-          
-          <View style={styles.heroContent}>
-            <View style={styles.typeBadge}>
-              <Text style={styles.typeText}>{task.type} SESSION</Text>
-            </View>
-            <Text style={styles.heroTitle}>{task.lead?.name}</Text>
-            <View style={styles.statusRow}>
-              <Clock size={16} color="#fff" style={{ opacity: 0.8 }} />
-              <Text style={styles.statusValue}>{task.status.replace('_', ' ')}</Text>
-            </View>
-          </View>
-        </LinearGradient>
-
-        <View style={styles.body}>
-          {/* Production Timeline Section */}
-          <Text style={styles.sectionTitle}>Production Pipeline</Text>
-          <View style={styles.card}>
-            <View style={styles.timelineItem}>
-              <View style={[styles.timelineIcon, { backgroundColor: shootTask?.status === 'COMPLETED' ? theme.success + '20' : theme.surfaceLight }]}>
-                <Video size={16} color={shootTask?.status === 'COMPLETED' ? theme.success : theme.textDark} />
+      {loading ? (
+        <View style={styles.center}>
+          <ActivityIndicator size="large" color={theme.videographer} />
+        </View>
+      ) : !task ? (
+        <View style={styles.center}>
+          <Text style={styles.emptyText}>Task not found.</Text>
+        </View>
+      ) : (
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+          {/* Header Hero */}
+          <LinearGradient
+            colors={[task.type === 'SHOOT' ? theme.videographer : theme.info, (task.type === 'SHOOT' ? theme.videographer : theme.info) + 'DD']}
+            style={styles.hero}
+          >
+            <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
+              <ChevronLeft color="#fff" size={24} />
+            </TouchableOpacity>
+            
+            <View style={styles.heroContent}>
+              <View style={styles.typeBadge}>
+                <Text style={styles.typeText}>{task.type} SESSION</Text>
               </View>
-              <View style={styles.timelineContent}>
-                <Text style={styles.timelineLabel}>Production Shoot</Text>
-                <Text style={[styles.timelineStatus, { color: shootTask?.status === 'COMPLETED' ? theme.success : theme.warning }]}>
-                  {shootTask?.status || 'NOT STARTED'}
-                </Text>
-                {shootTask?.status === 'COMPLETED' && (
-                  <Text style={styles.timelineTime}>
-                    Completed: {new Date(shootTask.updatedAt).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+              <Text style={styles.heroTitle}>{task.lead?.name}</Text>
+              <View style={styles.statusRow}>
+                <Clock size={16} color="#fff" style={{ opacity: 0.8 }} />
+                <Text style={styles.statusValue}>{task.status.replace('_', ' ')}</Text>
+              </View>
+            </View>
+          </LinearGradient>
+
+          <View style={styles.body}>
+            {/* Production Timeline Section */}
+            <Text style={styles.sectionTitle}>Production Pipeline</Text>
+            <View style={styles.card}>
+              <View style={styles.timelineItem}>
+                <View style={[styles.timelineIcon, { backgroundColor: task.lead?.tasks?.find(t => t.type === 'SHOOT')?.status === 'COMPLETED' ? theme.success + '20' : theme.surfaceLight }]}>
+                  <Video size={16} color={task.lead?.tasks?.find(t => t.type === 'SHOOT')?.status === 'COMPLETED' ? theme.success : theme.textDark} />
+                </View>
+                <View style={styles.timelineContent}>
+                  <Text style={styles.timelineLabel}>Production Shoot</Text>
+                  <Text style={[styles.timelineStatus, { color: task.lead?.tasks?.find(t => t.type === 'SHOOT')?.status === 'COMPLETED' ? theme.success : theme.warning }]}>
+                    {task.lead?.tasks?.find(t => t.type === 'SHOOT')?.status || 'NOT STARTED'}
                   </Text>
-                )}
+                </View>
               </View>
-            </View>
 
-            <View style={styles.timelineConnector} />
+              <View style={styles.timelineConnector} />
 
-            <View style={styles.timelineItem}>
-              <View style={[styles.timelineIcon, { backgroundColor: editTask?.status === 'COMPLETED' ? theme.success + '20' : theme.surfaceLight }]}>
-                <FileText size={16} color={editTask?.status === 'COMPLETED' ? theme.success : theme.textDark} />
-              </View>
-              <View style={styles.timelineContent}>
-                <Text style={styles.timelineLabel}>Post-Production Edit</Text>
-                <Text style={[styles.timelineStatus, { color: editTask?.status === 'COMPLETED' ? theme.success : theme.warning }]}>
-                  {editTask?.status || 'AWAITING SHOOT'}
-                </Text>
-                {editTask?.status === 'COMPLETED' && (
-                  <Text style={styles.timelineTime}>
-                    Finalized: {new Date(editTask.updatedAt).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                  </Text>
-                )}
-              </View>
-            </View>
-          </View>
-
-          {/* Client Details Section */}
-          <Text style={styles.sectionTitle}>Client Information</Text>
-          <View style={styles.card}>
-            <View style={styles.infoRow}>
-              <View style={styles.iconCircle}>
-                <Briefcase size={18} color={accentColor} />
-              </View>
-              <View style={styles.infoMain}>
-                <Text style={styles.infoLabel}>Business</Text>
-                <Text style={styles.infoValue}>{task.lead?.business || 'N/A'}</Text>
-              </View>
-            </View>
-
-            <View style={styles.divider} />
-
-            <View style={styles.infoRow}>
-              <View style={styles.iconCircle}>
-                <Phone size={18} color={accentColor} />
-              </View>
-              <View style={styles.infoMain}>
-                <Text style={styles.infoLabel}>Contact Number</Text>
-                <Text style={styles.infoValue}>{task.lead?.phone}</Text>
-              </View>
-              <TouchableOpacity style={[styles.callBtn, { backgroundColor: accentColor }]} onPress={handleCall}>
-                <Phone size={16} color="#fff" />
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          {/* Task Particulars Section */}
-          <Text style={styles.sectionTitle}>Task Details</Text>
-          <View style={styles.card}>
-            <View style={styles.gridRow}>
-              <View style={styles.gridItem}>
-                <CalendarIcon size={18} color={theme.textDim} />
-                <View style={{ marginLeft: 12 }}>
-                  <Text style={styles.infoLabel}>Deadline</Text>
-                  <Text style={styles.infoValue}>
-                    {task.deadline ? new Date(task.deadline).toLocaleDateString() : 'N/A'}
+              <View style={styles.timelineItem}>
+                <View style={[styles.timelineIcon, { backgroundColor: task.lead?.tasks?.find(t => t.type === 'EDIT')?.status === 'COMPLETED' ? theme.success + '20' : theme.surfaceLight }]}>
+                  <FileText size={16} color={task.lead?.tasks?.find(t => t.type === 'EDIT')?.status === 'COMPLETED' ? theme.success : theme.textDark} />
+                </View>
+                <View style={styles.timelineContent}>
+                  <Text style={styles.timelineLabel}>Post-Production Edit</Text>
+                  <Text style={[styles.timelineStatus, { color: task.lead?.tasks?.find(t => t.type === 'EDIT')?.status === 'COMPLETED' ? theme.success : theme.warning }]}>
+                    {task.lead?.tasks?.find(t => t.type === 'EDIT')?.status || 'AWAITING SHOOT'}
                   </Text>
                 </View>
               </View>
             </View>
-            
-            <View style={styles.divider} />
 
-            <View style={styles.notesBox}>
-              <View style={styles.notesHeader}>
-                <FileText size={16} color={theme.textDim} />
-                <Text style={styles.notesTitle}>Instructions</Text>
+            {/* Client Details Section */}
+            <Text style={styles.sectionTitle}>Client Information</Text>
+            <View style={styles.card}>
+              <View style={styles.infoRow}>
+                <View style={styles.iconCircle}>
+                  <Briefcase size={18} color={task.type === 'SHOOT' ? theme.videographer : theme.info} />
+                </View>
+                <View style={styles.infoMain}>
+                  <Text style={styles.infoLabel}>Business</Text>
+                  <Text style={styles.infoValue}>{task.lead?.business || 'N/A'}</Text>
+                </View>
               </View>
-              <Text style={styles.notesText}>
-                {task.details || 'No additional instructions provided for this task.'}
-              </Text>
+
+              <View style={styles.divider} />
+
+              <View style={styles.infoRow}>
+                <View style={styles.iconCircle}>
+                  <Phone size={18} color={task.type === 'SHOOT' ? theme.videographer : theme.info} />
+                </View>
+                <View style={styles.infoMain}>
+                  <Text style={styles.infoLabel}>Contact Number</Text>
+                  <Text style={styles.infoValue}>{task.lead?.phone}</Text>
+                </View>
+                <TouchableOpacity style={[styles.callBtn, { backgroundColor: task.type === 'SHOOT' ? theme.videographer : theme.info }]} onPress={handleCall}>
+                  <Phone size={16} color="#fff" />
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Task Particulars Section */}
+            <Text style={styles.sectionTitle}>Task Details</Text>
+            <View style={styles.card}>
+              <View style={styles.gridRow}>
+                <View style={styles.gridItem}>
+                  <CalendarIcon size={18} color={theme.textDim} />
+                  <View style={{ marginLeft: 12 }}>
+                    <Text style={styles.infoLabel}>Deadline</Text>
+                    <Text style={styles.infoValue}>
+                      {task.deadline ? new Date(task.deadline).toLocaleDateString() : 'N/A'}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+              
+              <View style={styles.divider} />
+
+              <View style={styles.notesBox}>
+                <View style={styles.notesHeader}>
+                  <FileText size={16} color={theme.textDim} />
+                  <Text style={styles.notesTitle}>Instructions</Text>
+                </View>
+                <Text style={styles.notesText}>
+                  {task.details || 'No additional instructions provided for this task.'}
+                </Text>
+              </View>
+            </View>
+
+            {/* Action Buttons */}
+            <View style={styles.actions}>
+              {task.status === 'ASSIGNED' && (
+                <TouchableOpacity 
+                  style={[styles.actionBtn, { backgroundColor: task.type === 'SHOOT' ? theme.videographer : theme.info }]} 
+                  onPress={() => updateStatus('IN_PROGRESS')}
+                  disabled={updating}
+                >
+                  {updating ? <ActivityIndicator color="#fff" /> : (
+                    <>
+                      <Play size={20} color="#fff" />
+                      <Text style={styles.actionBtnText}>Start Work</Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+              )}
+
+              {task.status === 'IN_PROGRESS' && (
+                <TouchableOpacity 
+                  style={[styles.actionBtn, { backgroundColor: theme.success }]} 
+                  onPress={() => updateStatus('COMPLETED')}
+                  disabled={updating}
+                >
+                  {updating ? <ActivityIndicator color="#fff" /> : (
+                    <>
+                      <CheckCircle2 size={20} color="#fff" />
+                      <Text style={styles.actionBtnText}>Mark Completed</Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+              )}
+
+              {task.status === 'COMPLETED' && (
+                <View style={styles.completedBadge}>
+                  <CheckCircle2 size={24} color={theme.success} />
+                  <Text style={styles.completedText}>Task Finalized</Text>
+                </View>
+              )}
             </View>
           </View>
-
-          {/* Action Buttons */}
-          <View style={styles.actions}>
-            {task.status === 'ASSIGNED' && (
-              <TouchableOpacity 
-                style={[styles.actionBtn, { backgroundColor: accentColor }]} 
-                onPress={() => updateStatus('IN_PROGRESS')}
-                disabled={updating}
-              >
-                {updating ? <ActivityIndicator color="#fff" /> : (
-                  <>
-                    <Play size={20} color="#fff" />
-                    <Text style={styles.actionBtnText}>Start Work</Text>
-                  </>
-                )}
-              </TouchableOpacity>
-            )}
-
-            {task.status === 'IN_PROGRESS' && (
-              <TouchableOpacity 
-                style={[styles.actionBtn, { backgroundColor: theme.success }]} 
-                onPress={() => updateStatus('COMPLETED')}
-                disabled={updating}
-              >
-                {updating ? <ActivityIndicator color="#fff" /> : (
-                  <>
-                    <CheckCircle2 size={20} color="#fff" />
-                    <Text style={styles.actionBtnText}>Mark Completed</Text>
-                  </>
-                )}
-              </TouchableOpacity>
-            )}
-
-            {task.status === 'COMPLETED' && (
-              <View style={styles.completedBadge}>
-                <CheckCircle2 size={24} color={theme.success} />
-                <Text style={styles.completedText}>Task Finalized</Text>
-              </View>
-            )}
-          </View>
-        </View>
-      </ScrollView>
+        </ScrollView>
+      )}
 
       {/* Success Modal */}
       {showSuccess && (

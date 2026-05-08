@@ -1,11 +1,11 @@
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
 
-// 📱 Using your computer's LAN IP so the phone can reach the backend
-const BASE_URL = 'http://192.168.29.155:3000';
+// 📱 Use the environment variable from .env or fallback to local IP
+const BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.29.155:3000';
 
 export const apiClient = axios.create({
-  baseURL: BASE_URL,
+  baseURL: BASE_URL,  
   headers: {
     'Content-Type': 'application/json',
   },
@@ -29,7 +29,7 @@ apiClient.interceptors.response.use(
       const isLoginRequest = error.config?.url?.includes('/auth/login');
       
       if (!isLoginRequest) {
-        console.log('[AUTH] Session expired, logging out');
+        console.log(`[AUTH] Session expired (401) on: ${error.config?.url}, logging out`);
         try {
           const { logout } = (await import('../store/authStore')).useAuthStore.getState();
           await logout();

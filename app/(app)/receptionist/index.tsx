@@ -121,36 +121,34 @@ export default function ReceptionistLeads() {
     </TouchableOpacity>
   ), [styles, theme, setSelectedLead]);
 
-  if (loading) {
-    return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color={theme.receptionist} />
-      </View>
-    );
-  }
-
   return (
     <View style={styles.container}>
-      <FlatList
-        data={leads}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.list}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => fetchLeads(1, true)} tintColor={theme.receptionist} />}
-        onEndReached={loadMore}
-        onEndReachedThreshold={0.5}
-        ListHeaderComponent={
-          <View style={styles.header}>
-            <Text style={styles.headerTitle}>New Inquiries</Text>
-            <Text style={styles.headerSubtitle}>Qualify or archive recently submitted leads</Text>
-          </View>
-        }
-        ListEmptyComponent={
-          <View style={styles.empty}>
-            <Text style={styles.emptyText}>All caught up! No pending leads.</Text>
-          </View>
-        }
-        renderItem={renderItem}
-      />
+      {loading ? (
+        <View style={styles.center}>
+          <ActivityIndicator size="large" color={theme.receptionist} />
+        </View>
+      ) : (
+        <FlatList
+          data={leads}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.list}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => fetchLeads(1, true)} tintColor={theme.receptionist} />}
+          onEndReached={loadMore}
+          onEndReachedThreshold={0.5}
+          ListHeaderComponent={
+            <View style={styles.header}>
+              <Text style={styles.headerTitle}>New Inquiries</Text>
+              <Text style={styles.headerSubtitle}>Qualify or archive recently submitted leads</Text>
+            </View>
+          }
+          ListEmptyComponent={
+            <View style={styles.empty}>
+              <Text style={styles.emptyText}>All caught up! No pending leads.</Text>
+            </View>
+          }
+          renderItem={renderItem}
+        />
+      )}
 
       <Modal
         visible={!!selectedLead}

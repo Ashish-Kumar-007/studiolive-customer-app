@@ -146,71 +146,71 @@ export default function LeadsDirectory() {
     );
   }, [styles, theme, isMarketing, router, getStatusConfig]);
 
-  if (loading && leads.length === 0) {
-    return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color={theme.marketing} />
-      </View>
-    );
-  }
-
   return (
     <View style={styles.container}>
-      <LinearGradient
-        colors={[theme.background, theme.surfaceLight]}
-        style={styles.header}
-      >
-        <View style={styles.headerTop}>
-          <View>
-            <Text style={styles.title}>Leads Directory</Text>
-            <Text style={styles.subtitle}>{leads.length} Total Potential Clients</Text>
-          </View>
-          {!isMarketing && (
-            <TouchableOpacity style={styles.addBtn} onPress={() => router.push('/leads/create')}>
-              <Plus size={24} color="#fff" />
-            </TouchableOpacity>
-          )}
+      {loading && leads.length === 0 ? (
+        <View style={styles.center}>
+          <ActivityIndicator size="large" color={theme.marketing} />
         </View>
-
-        <View style={styles.searchBarContainer}>
-          <View style={styles.searchBar}>
-            <Search size={18} color={theme.textDim} />
-            <TextInput
-              placeholder="Search by name or phone..."
-              placeholderTextColor={theme.textDark}
-              style={styles.searchInput}
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-            />
-          </View>
-          <TouchableOpacity style={styles.filterBtn}>
-            <Filter size={18} color={theme.text} />
-          </TouchableOpacity>
-        </View>
-      </LinearGradient>
-
-      <FlatList
-        data={filteredLeads}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.list}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={() => fetchLeads(1, true)} tintColor={theme.marketing} />
-        }
-        onEndReached={loadMore}
-        onEndReachedThreshold={0.5}
-        ListEmptyComponent={
-          <View style={styles.empty}>
-            <View style={styles.emptyIconCircle}>
-              <Search size={40} color={theme.border} />
+      ) : (
+        <>
+          <LinearGradient
+            colors={[theme.background, theme.surfaceLight]}
+            style={styles.header}
+          >
+            <View style={styles.headerTop}>
+              <View>
+                <Text style={styles.title}>Leads Directory</Text>
+                <Text style={styles.subtitle}>{leads.length} Total Potential Clients</Text>
+              </View>
+              {!isMarketing && (
+                <TouchableOpacity style={styles.addBtn} onPress={() => router.push('/leads/create')}>
+                  <Plus size={24} color="#fff" />
+                </TouchableOpacity>
+              )}
             </View>
-            <Text style={styles.emptyText}>No matching leads found</Text>
-            <TouchableOpacity onPress={() => setSearchQuery('')}>
-              <Text style={styles.clearSearch}>Clear all filters</Text>
-            </TouchableOpacity>
-          </View>
-        }
-        renderItem={renderItem}
-      />
+
+            <View style={styles.searchBarContainer}>
+              <View style={styles.searchBar}>
+                <Search size={18} color={theme.textDim} />
+                <TextInput
+                  placeholder="Search by name or phone..."
+                  placeholderTextColor={theme.textDark}
+                  style={styles.searchInput}
+                  value={searchQuery}
+                  onChangeText={setSearchQuery}
+                />
+              </View>
+              <TouchableOpacity style={styles.filterBtn}>
+                <Filter size={18} color={theme.text} />
+              </TouchableOpacity>
+            </View>
+          </LinearGradient>
+
+          <FlatList
+            data={filteredLeads}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={styles.list}
+            refreshControl={
+              <RefreshControl refreshing={refreshing} onRefresh={() => fetchLeads(1, true)} tintColor={theme.marketing} />
+            }
+            onEndReached={loadMore}
+            onEndReachedThreshold={0.5}
+            ListEmptyComponent={
+              <View style={styles.empty}>
+                <View style={styles.emptyIconCircle}>
+                  <Search size={40} color={theme.border} />
+                </View>
+                <Text style={styles.emptyText}>No matching leads found</Text>
+                <TouchableOpacity onPress={() => setSearchQuery('')}>
+                  <Text style={styles.clearSearch}>Clear all filters</Text>
+                </TouchableOpacity>
+              </View>
+            }
+            renderItem={renderItem}
+          />
+        </>
+      )}
     </View>
   );
 }
