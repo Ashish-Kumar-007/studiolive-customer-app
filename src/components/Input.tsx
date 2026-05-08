@@ -1,6 +1,7 @@
-import React from 'react';
-import { View, TextInput, Text, StyleSheet, ViewStyle, TextInputProps, StyleProp, TextStyle } from 'react-native';
-import { Colors, Spacing, Radius } from '../constants/theme';
+import React, { useState } from 'react';
+import { View, TextInput, Text, StyleSheet, ViewStyle, TextInputProps, StyleProp, TextStyle, TouchableOpacity } from 'react-native';
+import { Eye, EyeOff } from 'lucide-react-native';
+import { useTheme, Spacing, Radius } from '../constants/theme';
 
 interface InputProps extends TextInputProps {
   label?: string;
@@ -9,7 +10,11 @@ interface InputProps extends TextInputProps {
   style?: StyleProp<TextStyle>;
 }
 
-export const Input: React.FC<InputProps> = ({ label, error, containerStyle, style, multiline, ...props }) => {
+export const Input: React.FC<InputProps> = ({ label, error, containerStyle, style, multiline, secureTextEntry, ...props }) => {
+  const theme = useTheme();
+  const styles = createStyles(theme);
+  const [isSecure, setIsSecure] = useState(secureTextEntry || false);
+
   return (
     <View style={[styles.container, containerStyle]}>
       {label && <Text style={styles.label}>{label}</Text>}
@@ -20,23 +25,37 @@ export const Input: React.FC<InputProps> = ({ label, error, containerStyle, styl
       ]}>
         <TextInput
           style={[styles.input, multiline && styles.inputMultiline, style]}
-          placeholderTextColor={Colors.textDark}
+          placeholderTextColor={theme.textDark}
           multiline={multiline}
           {...props}
+          secureTextEntry={isSecure}
         />
+        {secureTextEntry && (
+          <TouchableOpacity 
+            style={styles.eyeIcon} 
+            onPress={() => setIsSecure(!isSecure)}
+            activeOpacity={0.7}
+          >
+            {isSecure ? (
+              <EyeOff size={20} color={theme.textDim} />
+            ) : (
+              <Eye size={20} color={theme.textDim} />
+            )}
+          </TouchableOpacity>
+        )}
       </View>
       {error && <Text style={styles.errorText}>{error}</Text>}
     </View>
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: any) => StyleSheet.create({
   container: {
     marginBottom: Spacing.md,
     width: '100%',
   },
   label: {
-    color: Colors.textDim,
+    color: theme.textDim,
     fontSize: 12,
     marginBottom: Spacing.xs,
     textTransform: 'uppercase',
@@ -44,32 +63,39 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   inputContainer: {
-    backgroundColor: Colors.surface,
+    backgroundColor: theme.surface,
     borderRadius: Radius.md,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: theme.border,
     minHeight: 54,
     paddingHorizontal: Spacing.md,
-    justifyContent: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   inputContainerMultiline: {
-    justifyContent: 'flex-start',
+    alignItems: 'flex-start',
     paddingVertical: Spacing.md,
   },
   input: {
-    color: Colors.text,
+    color: theme.text,
     fontSize: 16,
+    flex: 1,
   },
   inputMultiline: {
     textAlignVertical: 'top',
     minHeight: 80,
   },
   inputError: {
-    borderColor: Colors.error,
+    borderColor: theme.error,
   },
   errorText: {
-    color: Colors.error,
+    color: theme.error,
     fontSize: 12,
     marginTop: Spacing.xs,
+  },
+  eyeIcon: {
+    paddingLeft: Spacing.sm,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });

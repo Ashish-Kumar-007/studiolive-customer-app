@@ -9,7 +9,7 @@ import {
   Dimensions,
   Platform,
 } from 'react-native';
-import { Colors, Spacing, Radius } from '../constants/theme';
+import { useTheme, Spacing, Radius } from '../constants/theme';
 import { ChevronDown, Check } from 'lucide-react-native';
 
 interface Option {
@@ -35,6 +35,8 @@ export const Select: React.FC<SelectProps> = ({
   onSelect,
   error,
 }) => {
+  const theme = useTheme();
+  const styles = createStyles(theme);
   const [visible, setVisible] = useState(false);
   const selectedOption = options.find((o) => o.value === value);
 
@@ -60,7 +62,7 @@ export const Select: React.FC<SelectProps> = ({
             {selectedOption ? selectedOption.label : placeholder}
           </Text>
         </View>
-        <ChevronDown size={20} color={Colors.textDim} />
+        <ChevronDown size={20} color={theme.textDim} />
       </TouchableOpacity>
 
       {error && <Text style={styles.errorText}>{error}</Text>}
@@ -106,7 +108,7 @@ export const Select: React.FC<SelectProps> = ({
                     </Text>
                   </View>
                   {item.value === value && (
-                    <Check size={20} color={Colors.admin} />
+                    <Check size={20} color={theme.admin} />
                   )}
                 </TouchableOpacity>
               )}
@@ -118,14 +120,14 @@ export const Select: React.FC<SelectProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: any) => StyleSheet.create({
   container: {
     marginBottom: Spacing.md,
     width: '100%',
   },
   label: {
     fontSize: 12,
-    color: Colors.textDim,
+    color: theme.textDim,
     marginBottom: Spacing.xs,
     fontWeight: 'bold',
     textTransform: 'uppercase',
@@ -133,17 +135,17 @@ const styles = StyleSheet.create({
   },
   trigger: {
     height: 54,
-    backgroundColor: Colors.surfaceLight,
+    backgroundColor: theme.surfaceLight,
     borderRadius: Radius.md,
     paddingHorizontal: Spacing.md,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: theme.border,
   },
   triggerError: {
-    borderColor: Colors.error,
+    borderColor: theme.error,
   },
   triggerContent: {
     flexDirection: 'row',
@@ -152,14 +154,14 @@ const styles = StyleSheet.create({
   },
   valueText: {
     fontSize: 15,
-    color: Colors.text,
+    color: theme.text,
     fontWeight: '500',
   },
   placeholderText: {
-    color: Colors.textDark,
+    color: theme.textDark,
   },
   errorText: {
-    color: Colors.error,
+    color: theme.error,
     fontSize: 12,
     marginTop: 4,
   },
@@ -171,7 +173,7 @@ const styles = StyleSheet.create({
     padding: Spacing.xl,
   },
   modalContent: {
-    backgroundColor: Colors.surface,
+    backgroundColor: theme.surface,
     width: '100%',
     maxHeight: '60%',
     borderRadius: Radius.xxxl,
@@ -182,19 +184,19 @@ const styles = StyleSheet.create({
     shadowRadius: 20,
     elevation: 10,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: theme.border,
   },
   modalHeader: {
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    borderBottomColor: theme.border,
     marginBottom: Spacing.sm,
   },
   modalTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: Colors.text,
+    color: theme.text,
   },
   option: {
     paddingHorizontal: Spacing.lg,
@@ -214,14 +216,14 @@ const styles = StyleSheet.create({
     borderRadius: 5,
   },
   optionSelected: {
-    backgroundColor: Colors.admin + '08',
+    backgroundColor: theme.admin + '10',
   },
   optionText: {
     fontSize: 16,
-    color: Colors.text,
+    color: theme.text,
   },
   optionTextSelected: {
     fontWeight: 'bold',
-    color: Colors.admin,
+    color: theme.admin,
   },
 });

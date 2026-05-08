@@ -8,7 +8,7 @@ import {
   TextStyle, 
   Platform 
 } from 'react-native';
-import { Colors, Spacing, Radius } from '../constants/theme';
+import { useTheme, Spacing, Radius } from '../constants/theme';
 
 interface ButtonProps {
   onPress: () => void;
@@ -33,6 +33,9 @@ export const Button: React.FC<ButtonProps> = ({
   textStyle,
   icon
 }) => {
+  const theme = useTheme();
+  const styles = createStyles(theme);
+
   const getVariantStyle = () => {
     switch (variant) {
       case 'secondary':
@@ -84,7 +87,7 @@ export const Button: React.FC<ButtonProps> = ({
       ]}
     >
       {loading ? (
-        <ActivityIndicator color={variant === 'outline' || variant === 'ghost' ? Colors.primary : 'white'} />
+        <ActivityIndicator color={variant === 'outline' || variant === 'ghost' ? theme.admin : 'white'} />
       ) : (
         <>
           {icon && icon}
@@ -97,7 +100,7 @@ export const Button: React.FC<ButtonProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: any) => StyleSheet.create({
   base: {
     borderRadius: Radius.xl,
     flexDirection: 'row',
@@ -117,20 +120,20 @@ const styles = StyleSheet.create({
     }),
   },
   primary: {
-    backgroundColor: Colors.primary,
+    backgroundColor: theme.admin,
   },
   secondary: {
-    backgroundColor: Colors.secondary,
+    backgroundColor: theme.manager,
   },
   outline: {
     backgroundColor: 'transparent',
     borderWidth: 1,
-    borderColor: Colors.primary,
+    borderColor: theme.admin,
     elevation: 0,
     shadowOpacity: 0,
   },
   danger: {
-    backgroundColor: Colors.error,
+    backgroundColor: theme.error,
   },
   ghost: {
     backgroundColor: 'transparent',
@@ -158,10 +161,10 @@ const styles = StyleSheet.create({
     color: 'white',
   },
   outlineText: {
-    color: Colors.primary,
+    color: theme.admin,
   },
   ghostText: {
-    color: Colors.primary,
+    color: theme.admin,
   },
   disabled: {
     opacity: 0.6,

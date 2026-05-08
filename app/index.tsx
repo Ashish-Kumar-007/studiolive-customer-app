@@ -1,5 +1,5 @@
 import { View, ActivityIndicator } from 'react-native';
-import { Colors } from '../src/constants/theme';
+import { useTheme } from '../src/constants/theme';
 
 /**
  * Root Index is just a loading placeholder.
@@ -7,9 +7,10 @@ import { Colors } from '../src/constants/theme';
  * to prevent redirect loops.
  */
 export default function Index() {
+  const theme = useTheme();
   return (
-    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#000' }}>
-      <ActivityIndicator size="large" color={Colors.admin} />
+    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: theme.background }}>
+      <ActivityIndicator size="large" color={theme.admin} />
     </View>
   );
 }

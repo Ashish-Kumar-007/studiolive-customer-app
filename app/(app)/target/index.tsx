@@ -1,17 +1,19 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Alert, TouchableOpacity } from 'react-native';
-import { Colors, Spacing, Radius } from '../../../src/constants/theme';
+import { useTheme, Spacing, Radius } from '../../../src/constants/theme';
 import { useAuthStore } from '../../../src/store/authStore';
 import { apiClient } from '../../../src/api/client';
 import { Target, TrendingUp, Award, Clock } from 'lucide-react-native';
 
 interface TargetData {
   daily: number;
-  monthly: number;
+  weekly: number;
   currentProgress: number;
 }
 
 export default function MyTarget() {
+  const theme = useTheme();
+  const styles = createStyles(theme);
   const { user, isAuthenticated } = useAuthStore();
   const [target, setTarget] = useState<TargetData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -22,7 +24,7 @@ export default function MyTarget() {
       setTarget(response.data);
     } catch (error) {
       console.warn('Target not found, showing default');
-      setTarget({ daily: 5, monthly: 100, currentProgress: 2 });
+      setTarget({ daily: 5, weekly: 30, currentProgress: 12 });
     } finally {
       setLoading(false);
     }
@@ -36,54 +38,54 @@ export default function MyTarget() {
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color={Colors.marketing} />
+        <ActivityIndicator size="large" color={theme.marketing} />
       </View>
     );
   }
 
-  const progressPercent = target ? (target.currentProgress / target.daily) * 100 : 0;
+  const progressPercent = target && target.weekly > 0 ? (target.currentProgress / target.weekly) * 100 : 0;
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Daily Performance</Text>
-        <Text style={styles.headerSubtitle}>Track your goals and achievements</Text>
+        <Text style={styles.headerTitle}>Weekly Performance</Text>
+        <Text style={styles.headerSubtitle}>Monitor your progress against assigned quotas</Text>
       </View>
 
       <View style={styles.progressCard}>
         <View style={styles.cardHeader}>
-          <Target color={Colors.marketing} size={24} />
-          <Text style={styles.cardTitle}>Today's Progress</Text>
+          <Target color={theme.marketing} size={24} />
+          <Text style={styles.cardTitle}>Current Week Progress</Text>
         </View>
         
         <View style={styles.statsRow}>
           <View>
             <Text style={styles.statValue}>{target?.currentProgress}</Text>
-            <Text style={styles.statLabel}>Current</Text>
+            <Text style={styles.statLabel}>Achieved</Text>
           </View>
           <View style={styles.divider} />
           <View>
-            <Text style={styles.statValue}>{target?.daily}</Text>
+            <Text style={styles.statValue}>{target?.weekly}</Text>
             <Text style={styles.statLabel}>Goal</Text>
           </View>
         </View>
 
         <View style={styles.progressBarContainer}>
-          <View style={[styles.progressBar, { width: `${Math.min(progressPercent, 100)}%`, backgroundColor: Colors.marketing }]} />
+          <View style={[styles.progressBar, { width: `${Math.min(progressPercent, 100)}%`, backgroundColor: theme.marketing }]} />
         </View>
-        <Text style={styles.progressText}>{Math.round(progressPercent)}% of daily target reached</Text>
+        <Text style={styles.progressText}>{Math.round(progressPercent)}% of weekly target reached</Text>
       </View>
 
       <View style={styles.grid}>
-        <View style={[styles.miniCard, { borderLeftColor: Colors.manager, borderLeftWidth: 4 }]}>
-          <Award size={20} color={Colors.manager} />
-          <Text style={styles.miniLabel}>Monthly Target</Text>
-          <Text style={styles.miniValue}>{target?.monthly}</Text>
+        <View style={[styles.miniCard, { borderLeftColor: theme.manager, borderLeftWidth: 4 }]}>
+          <Award size={20} color={theme.manager} />
+          <Text style={styles.miniLabel}>Daily Avg Goal</Text>
+          <Text style={styles.miniValue}>{(target!.weekly / 6).toFixed(1)}</Text>
         </View>
-        <View style={[styles.miniCard, { borderLeftColor: Colors.videographer, borderLeftWidth: 4 }]}>
-          <Clock size={20} color={Colors.videographer} />
-          <Text style={styles.miniLabel}>Avg/Day</Text>
-          <Text style={styles.miniValue}>{(target!.monthly / 22).toFixed(1)}</Text>
+        <View style={[styles.miniCard, { borderLeftColor: theme.videographer, borderLeftWidth: 4 }]}>
+          <Clock size={20} color={theme.videographer} />
+          <Text style={styles.miniLabel}>Daily Setup</Text>
+          <Text style={styles.miniValue}>{target?.daily}</Text>
         </View>
       </View>
 
@@ -91,23 +93,23 @@ export default function MyTarget() {
         style={styles.historyBtn}
         onPress={() => Alert.alert('Coming Soon', 'Detailed history tracking is in development.')}
       >
-        <TrendingUp size={20} color={Colors.text} />
+        <TrendingUp size={20} color={theme.text} />
         <Text style={styles.historyBtnText}>View Achievement History</Text>
       </TouchableOpacity>
     </ScrollView>
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: theme.background,
   },
   center: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: Colors.background,
+    backgroundColor: theme.background,
   },
   content: {
     padding: Spacing.lg,
@@ -118,19 +120,19 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 28,
     fontWeight: '800',
-    color: Colors.text,
+    color: theme.text,
   },
   headerSubtitle: {
     fontSize: 14,
-    color: Colors.textDim,
+    color: theme.textDim,
     marginTop: 4,
   },
   progressCard: {
-    backgroundColor: Colors.surface,
+    backgroundColor: theme.surface,
     padding: Spacing.xl,
     borderRadius: Radius.xxxl,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: theme.border,
     marginBottom: Spacing.lg,
   },
   cardHeader: {
@@ -140,7 +142,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xl,
   },
   cardTitle: {
-    color: Colors.text,
+    color: theme.text,
     fontSize: 18,
     fontWeight: '700',
   },
@@ -151,13 +153,13 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xl,
   },
   statValue: {
-    color: Colors.text,
+    color: theme.text,
     fontSize: 32,
     fontWeight: '800',
     textAlign: 'center',
   },
   statLabel: {
-    color: Colors.textDark,
+    color: theme.textDark,
     fontSize: 12,
     fontWeight: 'bold',
     textTransform: 'uppercase',
@@ -167,11 +169,11 @@ const styles = StyleSheet.create({
   divider: {
     width: 1,
     height: 40,
-    backgroundColor: Colors.border,
+    backgroundColor: theme.border,
   },
   progressBarContainer: {
     height: 12,
-    backgroundColor: Colors.background,
+    backgroundColor: theme.background,
     borderRadius: Radius.full,
     overflow: 'hidden',
     marginBottom: 12,
@@ -181,7 +183,7 @@ const styles = StyleSheet.create({
     borderRadius: Radius.full,
   },
   progressText: {
-    color: Colors.textDim,
+    color: theme.textDim,
     fontSize: 13,
     textAlign: 'center',
     fontWeight: '500',
@@ -193,21 +195,21 @@ const styles = StyleSheet.create({
   },
   miniCard: {
     flex: 1,
-    backgroundColor: Colors.surface,
+    backgroundColor: theme.surface,
     padding: Spacing.lg,
     borderRadius: Radius.xxl,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: theme.border,
   },
   miniLabel: {
-    color: Colors.textDim,
+    color: theme.textDim,
     fontSize: 11,
     fontWeight: '700',
     textTransform: 'uppercase',
     marginTop: 8,
   },
   miniValue: {
-    color: Colors.text,
+    color: theme.text,
     fontSize: 20,
     fontWeight: '800',
     marginTop: 2,
@@ -217,14 +219,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 12,
-    backgroundColor: Colors.surface,
+    backgroundColor: theme.surface,
     padding: Spacing.lg,
     borderRadius: Radius.full,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: theme.border,
   },
   historyBtnText: {
-    color: Colors.text,
+    color: theme.text,
     fontSize: 15,
     fontWeight: '600',
   },

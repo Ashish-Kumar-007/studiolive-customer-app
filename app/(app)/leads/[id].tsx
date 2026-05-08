@@ -1,18 +1,23 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, ActivityIndicator, TouchableOpacity, Alert } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Colors, Spacing, Radius } from '../../../src/constants/theme';
+import { useTheme, Spacing, Radius } from '../../../src/constants/theme';
 import { apiClient } from '../../../src/api/client';
-import { Phone, Mail, Calendar, User, Business, MapPin, ChevronLeft, Trash2 } from 'lucide-react-native';
+import { Phone, Mail, Calendar, User, Briefcase, MapPin, ChevronLeft, Trash2 } from 'lucide-react-native';
+import { maskPhone, maskEmail } from '../../../src/utils/masking';
 import Button from '../../../src/components/AppButton';
 import { useAuthStore } from '../../../src/store/authStore';
 
 export default function LeadDetails() {
+  const theme = useTheme();
+  const styles = createStyles(theme);
   const { id } = useLocalSearchParams();
   const { user } = useAuthStore();
   const [lead, setLead] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
+
+  const isMarketing = user?.role === 'MARKETING';
 
   const fetchLeadDetails = async () => {
     try {
@@ -33,7 +38,7 @@ export default function LeadDetails() {
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color={Colors.marketing} />
+        <ActivityIndicator size="large" color={theme.marketing} />
       </View>
     );
   }
@@ -42,7 +47,7 @@ export default function LeadDetails() {
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <ChevronLeft size={24} color={Colors.text} />
+          <ChevronLeft size={24} color={theme.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Lead Details</Text>
       </View>
@@ -52,8 +57,16 @@ export default function LeadDetails() {
           <Text style={styles.avatarText}>{lead?.name?.[0]}</Text>
         </View>
         <Text style={styles.name}>{lead?.name}</Text>
-        <View style={[styles.statusBadge, { backgroundColor: Colors.warning + '15' }]}>
-          <Text style={[styles.statusText, { color: Colors.warning }]}>{lead?.status}</Text>
+        <View style={[
+          styles.statusBadge, 
+          { backgroundColor: (lead?.status === 'CONVINCED' ? theme.success : lead?.status === 'NEW' ? theme.warning : theme.info) + '15' }
+        ]}>
+          <Text style={[
+            styles.statusText, 
+            { color: lead?.status === 'CONVINCED' ? theme.success : lead?.status === 'NEW' ? theme.warning : theme.info }
+          ]}>
+            {lead?.status}
+          </Text>
         </View>
       </View>
 
@@ -61,20 +74,26 @@ export default function LeadDetails() {
         <Text style={styles.sectionTitle}>Contact Information</Text>
         <View style={styles.infoCard}>
           <View style={styles.infoRow}>
-            <Phone size={18} color={Colors.textDim} />
-            <Text style={styles.infoValue}>{lead?.phone}</Text>
+            <Phone size={18} color={theme.textDim} />
+            <Text style={styles.infoValue}>
+              {isMarketing ? maskPhone(lead?.phone) : lead?.phone}
+            </Text>
           </View>
           <View style={styles.divider} />
           <View style={styles.infoRow}>
-            <Mail size={18} color={Colors.textDim} />
-            <Text style={styles.infoValue}>{lead?.email || 'No email provided'}</Text>
+            <Mail size={18} color={theme.textDim} />
+            <Text style={styles.infoValue}>
+              {lead?.email 
+                ? (isMarketing ? maskEmail(lead.email) : lead.email) 
+                : 'No email provided'}
+            </Text>
           </View>
         </View>
 
         <Text style={styles.sectionTitle}>Business Details</Text>
         <View style={styles.infoCard}>
           <View style={styles.infoRow}>
-            <User size={18} color={Colors.textDim} />
+            <User size={18} color={theme.textDim} />
             <View>
               <Text style={styles.infoLabel}>Business Type</Text>
               <Text style={styles.infoValue}>{lead?.business}</Text>
@@ -82,7 +101,7 @@ export default function LeadDetails() {
           </View>
           <View style={styles.divider} />
           <View style={styles.infoRow}>
-            <Calendar size={18} color={Colors.textDim} />
+            <Calendar size={18} color={theme.textDim} />
             <View>
               <Text style={styles.infoLabel}>Created At</Text>
               <Text style={styles.infoValue}>{new Date(lead?.createdAt).toLocaleDateString()}</Text>
@@ -101,11 +120,11 @@ export default function LeadDetails() {
       </View>
 
       <View style={styles.actions}>
-        {(user?.role === 'RECEPTIONIST' || user?.role === 'ADMIN' || user?.role === 'MANAGER') ? (
+        {(lead?.status === 'NEW' && (user?.role === 'RECEPTIONIST' || user?.role === 'ADMIN' || user?.role === 'MANAGER')) ? (
           <Button
             title="Qualify This Lead"
             onPress={() => router.push('/receptionist')}
-            style={{ backgroundColor: Colors.receptionist }}
+            style={{ backgroundColor: theme.receptionist }}
           />
         ) : (
           <Button
@@ -119,8 +138,8 @@ export default function LeadDetails() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
+const createStyles = (theme: any) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: theme.background },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   content: { padding: Spacing.lg, paddingBottom: 60 },
   header: {
@@ -132,30 +151,30 @@ const styles = StyleSheet.create({
   },
   backBtn: {
     padding: 8,
-    backgroundColor: Colors.surface,
+    backgroundColor: theme.surface,
     borderRadius: Radius.full,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: theme.border,
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: '800',
-    color: Colors.text,
+    color: theme.text,
   },
   profileCard: {
-    backgroundColor: Colors.surface,
+    backgroundColor: theme.surface,
     padding: Spacing.xl,
     borderRadius: Radius.xxxl,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: theme.border,
     marginBottom: Spacing.xl,
   },
   avatarLarge: {
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: Colors.marketing + '20',
+    backgroundColor: theme.marketing + '20',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: Spacing.md,
@@ -163,12 +182,12 @@ const styles = StyleSheet.create({
   avatarText: {
     fontSize: 32,
     fontWeight: '800',
-    color: Colors.marketing,
+    color: theme.marketing,
   },
   name: {
     fontSize: 24,
     fontWeight: '800',
-    color: Colors.text,
+    color: theme.text,
     marginBottom: 8,
   },
   statusBadge: {
@@ -187,18 +206,18 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 12,
     fontWeight: '800',
-    color: Colors.textDark,
+    color: theme.textDark,
     textTransform: 'uppercase',
     letterSpacing: 1.5,
     marginTop: Spacing.lg,
     marginLeft: 4,
   },
   infoCard: {
-    backgroundColor: Colors.surface,
+    backgroundColor: theme.surface,
     borderRadius: Radius.xxl,
     padding: Spacing.lg,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: theme.border,
   },
   infoRow: {
     flexDirection: 'row',
@@ -208,30 +227,30 @@ const styles = StyleSheet.create({
   },
   divider: {
     height: 1,
-    backgroundColor: Colors.border,
+    backgroundColor: theme.border,
     marginVertical: 12,
   },
   infoLabel: {
     fontSize: 10,
-    color: Colors.textDim,
+    color: theme.textDim,
     textTransform: 'uppercase',
     fontWeight: 'bold',
   },
   infoValue: {
     fontSize: 16,
-    color: Colors.text,
+    color: theme.text,
     fontWeight: '600',
   },
   notesCard: {
-    backgroundColor: Colors.surface,
+    backgroundColor: theme.surface,
     borderRadius: Radius.xxl,
     padding: Spacing.lg,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: theme.border,
     borderStyle: 'dashed',
   },
   notesText: {
-    color: Colors.text,
+    color: theme.text,
     lineHeight: 22,
     fontSize: 15,
   },

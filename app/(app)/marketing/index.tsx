@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Alert, KeyboardAvoidingView, Platform, TouchableOpacity } from 'react-native';
-import { Colors, Spacing, Radius } from '../../../src/constants/theme';
+import { useTheme, Spacing, Radius } from '../../../src/constants/theme';
 import { Input } from '../../../src/components/Input';
 import Button from '../../../src/components/AppButton';
 import { apiClient } from '../../../src/api/client';
@@ -11,6 +11,8 @@ const LEAD_SOURCES = ['Instagram', 'Referral', 'Website', 'Google', 'Walk-in'];
 const BUSINESS_TYPES = ['Real Estate', 'Corporate', 'Events', 'Restaurant', 'Product', 'Other'];
 
 export default function MarketingLeads() {
+  const theme = useTheme();
+  const styles = createStyles(theme);
   const [form, setForm] = useState({
     name: '',
     phone: '',
@@ -20,6 +22,7 @@ export default function MarketingLeads() {
   });
   const [loading, setLoading] = useState(false);
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
+  const [showSuccess, setShowSuccess] = useState(false);
   const router = useRouter();
 
   const handleSubmit = async () => {
@@ -31,14 +34,7 @@ export default function MarketingLeads() {
     setLoading(true);
     try {
       await apiClient.post('/leads', form);
-      Alert.alert('Success', 'Lead captured successfully!', [
-        {
-          text: 'Great', onPress: () => {
-            setForm({ name: '', phone: '', business: 'Real Estate', source: 'Instagram', notes: '' });
-            router.replace('/(app)');
-          }
-        }
-      ]);
+      setShowSuccess(true);
     } catch (error: any) {
       console.error(error);
       Alert.alert('Error', error.response?.data?.message || 'Failed to capture lead');
@@ -60,7 +56,7 @@ export default function MarketingLeads() {
         >
           <Text style={styles.dropdownHeaderText}>{selectedValue || 'Select an option'}</Text>
           <View style={{ transform: [{ rotate: isOpen ? '180deg' : '0deg' }] }}>
-            <ChevronDown size={20} color={Colors.textDark} />
+            <ChevronDown size={20} color={theme.textDark} />
           </View>
         </TouchableOpacity>
 
@@ -80,7 +76,7 @@ export default function MarketingLeads() {
                   <Text style={[styles.dropdownItemText, isSelected && styles.dropdownItemTextSelected]}>
                     {opt}
                   </Text>
-                  {isSelected && <CheckCircle2 size={18} color={Colors.marketing} />}
+                  {isSelected && <CheckCircle2 size={18} color={theme.marketing} />}
                 </TouchableOpacity>
               );
             })}
@@ -100,7 +96,7 @@ export default function MarketingLeads() {
         
         <View style={styles.header}>
           <View style={styles.iconCircle}>
-            <Target size={28} color={Colors.marketing} />
+            <Target size={28} color={theme.marketing} />
           </View>
           <Text style={styles.title}>Capture Prospect</Text>
           <Text style={styles.subtitle}>Enter details to inject a new lead into the pipeline</Text>
@@ -151,18 +147,44 @@ export default function MarketingLeads() {
           style={styles.submitBtn}
         />
       </View>
+
+      {/* Success Modal Overlay */}
+      {showSuccess && (
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalGlow} />
+            <View style={styles.successIconContainer}>
+              <CheckCircle2 size={40} color={theme.success} />
+            </View>
+            <Text style={styles.modalTitle}>Lead Injected</Text>
+            <Text style={styles.modalDesc}>
+              The prospect <Text style={{ color: theme.marketing, fontWeight: '800' }}>{form.name}</Text> has been successfully added to the production pipeline.
+            </Text>
+            <TouchableOpacity 
+              style={styles.modalBtn} 
+              onPress={() => {
+                setShowSuccess(false);
+                setForm({ name: '', phone: '', business: 'Real Estate', source: 'Instagram', notes: '' });
+                router.replace('/(app)');
+              }}
+            >
+              <Text style={styles.modalBtnText}>Acknowledge</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
     </KeyboardAvoidingView>
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: theme.background,
   },
   content: {
     padding: Spacing.lg,
-    paddingBottom: Spacing.xxxl,
+    paddingBottom: Spacing.xxl,
   },
   header: {
     alignItems: 'center',
@@ -173,7 +195,7 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: Colors.marketing + '15',
+    backgroundColor: theme.marketing + '15',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: Spacing.md,
@@ -181,32 +203,32 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: '900',
-    color: Colors.text,
+    color: theme.text,
     letterSpacing: -0.5,
     marginBottom: 4,
   },
   subtitle: {
     fontSize: 14,
-    color: Colors.textDim,
+    color: theme.textDim,
     textAlign: 'center',
     paddingHorizontal: Spacing.lg,
   },
   sectionTitle: {
     fontSize: 14,
     fontWeight: '800',
-    color: Colors.textDim,
+    color: theme.textDim,
     textTransform: 'uppercase',
     letterSpacing: 1,
     marginBottom: Spacing.sm,
     marginLeft: Spacing.xs,
   },
   card: {
-    backgroundColor: Colors.surface,
+    backgroundColor: theme.surface,
     padding: Spacing.xl,
     paddingBottom: Spacing.md,
     borderRadius: Radius.xxl,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: theme.border,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.05,
@@ -220,7 +242,7 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 12,
     fontWeight: '800',
-    color: Colors.textDark,
+    color: theme.textDark,
     marginBottom: 8,
     textTransform: 'uppercase',
     letterSpacing: 1,
@@ -229,28 +251,28 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: Colors.background,
+    backgroundColor: theme.background,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: theme.border,
     borderRadius: Radius.xl,
     paddingHorizontal: Spacing.lg,
     paddingVertical: 14,
   },
   dropdownHeaderOpen: {
-    borderColor: Colors.marketing,
+    borderColor: theme.marketing,
     borderBottomLeftRadius: 0,
     borderBottomRightRadius: 0,
   },
   dropdownHeaderText: {
     fontSize: 16,
-    color: Colors.text,
+    color: theme.text,
     fontWeight: '500',
   },
   dropdownList: {
-    backgroundColor: Colors.background,
+    backgroundColor: theme.background,
     borderWidth: 1,
     borderTopWidth: 0,
-    borderColor: Colors.marketing,
+    borderColor: theme.marketing,
     borderBottomLeftRadius: Radius.xl,
     borderBottomRightRadius: Radius.xl,
     overflow: 'hidden',
@@ -262,21 +284,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border + '50',
+    borderBottomColor: theme.border + '50',
   },
   dropdownItemText: {
     fontSize: 15,
-    color: Colors.text,
+    color: theme.text,
   },
   dropdownItemTextSelected: {
     fontWeight: '800',
-    color: Colors.marketing,
+    color: theme.marketing,
   },
   footer: {
     padding: Spacing.lg,
-    backgroundColor: Colors.surface,
+    backgroundColor: theme.surface,
     borderTopWidth: 1,
-    borderTopColor: Colors.border,
+    borderTopColor: theme.border,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -4 },
     shadowOpacity: 0.05,
@@ -284,8 +306,83 @@ const styles = StyleSheet.create({
     elevation: 10,
   },
   submitBtn: {
-    backgroundColor: Colors.marketing,
+    backgroundColor: theme.marketing,
     height: 56,
     borderRadius: Radius.full,
+  },
+  modalOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(7, 7, 9, 0.8)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1000,
+    padding: Spacing.xl,
+  },
+  modalContent: {
+    width: '100%',
+    backgroundColor: theme.surface,
+    borderRadius: Radius.xxxl,
+    padding: 30,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.05)',
+    overflow: 'hidden',
+  },
+  modalGlow: {
+    position: 'absolute',
+    top: -50,
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+    backgroundColor: theme.success + '15',
+    opacity: 0.5,
+  },
+  successIconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: theme.success + '15',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  modalTitle: {
+    fontSize: 24,
+    fontWeight: '900',
+    color: theme.text,
+    marginBottom: 12,
+    letterSpacing: -0.5,
+  },
+  modalDesc: {
+    fontSize: 15,
+    color: theme.textDim,
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: 30,
+    paddingHorizontal: 10,
+  },
+  modalBtn: {
+    width: '100%',
+    height: 56,
+    borderRadius: Radius.xl,
+    backgroundColor: theme.marketing,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: theme.marketing,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  modalBtnText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '800',
+    letterSpacing: 1,
+    textTransform: 'uppercase',
   },
 });

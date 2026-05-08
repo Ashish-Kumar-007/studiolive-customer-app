@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, RefreshControl } from 'react-native';
-import { Colors, Spacing, Radius } from '../../../src/constants/theme';
+import { useTheme, Spacing, Radius } from '../../../src/constants/theme';
 import { apiClient } from '../../../src/api/client';
 import { useAuthStore } from '../../../src/store/authStore';
 import { useRouter } from 'expo-router';
@@ -17,6 +17,8 @@ interface Lead {
 }
 
 export default function MyLeadsScreen() {
+  const theme = useTheme();
+  const styles = createStyles(theme);
   const { isAuthenticated } = useAuthStore();
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
@@ -65,16 +67,16 @@ export default function MyLeadsScreen() {
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'CONVINCED': return <CheckCircle2 size={16} color={Colors.success} />;
-      case 'ARCHIVED': return <Archive size={16} color={Colors.textDark} />;
-      default: return <Clock size={16} color={Colors.warning} />;
+      case 'CONVINCED': return <CheckCircle2 size={16} color={theme.success} />;
+      case 'ARCHIVED': return <Archive size={16} color={theme.textDark} />;
+      default: return <Clock size={16} color={theme.warning} />;
     }
   };
 
   if (loading && leads.length === 0) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color={Colors.marketing} />
+        <ActivityIndicator size="large" color={theme.marketing} />
       </View>
     );
   }
@@ -86,7 +88,7 @@ export default function MyLeadsScreen() {
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={() => fetchLeads(1, true)} />
+          <RefreshControl refreshing={refreshing} onRefresh={() => fetchLeads(1, true)} tintColor={theme.marketing} />
         }
         onEndReached={loadMore}
         onEndReachedThreshold={0.5}
@@ -105,18 +107,18 @@ export default function MyLeadsScreen() {
                 <Text style={styles.leadName}>{item.name}</Text>
                 <View style={styles.statusRow}>
                   {getStatusIcon(item.status)}
-                  <Text style={[styles.statusText, { color: item.status === 'CONVINCED' ? Colors.success : (item.status === 'ARCHIVED' ? Colors.textDark : Colors.warning) }]}>
+                  <Text style={[styles.statusText, { color: item.status === 'CONVINCED' ? theme.success : (item.status === 'ARCHIVED' ? theme.textDark : theme.warning) }]}>
                     {item.status}
                   </Text>
                 </View>
               </View>
               <Text style={styles.leadSub}>{item.business} • {item.source}</Text>
               <View style={styles.phoneRow}>
-                <Phone size={12} color={Colors.textDark} />
+                <Phone size={12} color={theme.textDark} />
                 <Text style={styles.phoneText}>{item.phone}</Text>
               </View>
             </View>
-            <ChevronRight color={Colors.border} size={20} />
+            <ChevronRight color={theme.border} size={20} />
           </TouchableOpacity>
         )}
       />
@@ -124,16 +126,16 @@ export default function MyLeadsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.background },
+const createStyles = (theme: any) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: theme.background },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: theme.background },
   list: { padding: Spacing.md },
   card: {
-    backgroundColor: Colors.surface,
+    backgroundColor: theme.surface,
     padding: Spacing.md,
     borderRadius: Radius.md,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: theme.border,
     marginBottom: Spacing.sm,
     flexDirection: 'row',
     alignItems: 'center',
@@ -145,12 +147,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 4,
   },
-  leadName: { color: Colors.text, fontSize: 16, fontWeight: 'bold' },
-  leadSub: { color: Colors.textDim, fontSize: 12, marginBottom: 6 },
+  leadName: { color: theme.text, fontSize: 16, fontWeight: 'bold' },
+  leadSub: { color: theme.textDim, fontSize: 12, marginBottom: 6 },
   statusRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   statusText: { fontSize: 10, fontWeight: 'bold', letterSpacing: 1 },
   phoneRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  phoneText: { color: Colors.textDark, fontSize: 12 },
+  phoneText: { color: theme.textDark, fontSize: 12 },
   empty: { padding: 40, alignItems: 'center' },
-  emptyText: { color: Colors.textDark },
+  emptyText: { color: theme.textDark },
 });

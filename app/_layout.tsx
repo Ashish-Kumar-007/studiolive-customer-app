@@ -2,16 +2,17 @@ import { useEffect } from 'react';
 import { Stack, useRootNavigationState, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useAuthStore } from '../src/store/authStore';
-import { Colors } from '../src/constants/theme';
+import { useTheme } from '../src/constants/theme';
 import { setupMockAdapter } from '../src/api/mockData';
 import { apiClient } from '../src/api/client';
 
-// 🚀 Demo Mode: Set to true to use mock data
-const USE_DEMO_DATA = true;
+// 🚀 Demo Mode: Set to false to use real backend API
+const USE_DEMO_DATA = false;
 
 export default function RootLayout() {
   const { initAuth, logout, isAuthenticated, user, isInitialized } = useAuthStore();
   const segments = useSegments();
+  const theme = useTheme();
   const router = useRouter();
   const navigationState = useRootNavigationState();
 
@@ -65,13 +66,13 @@ export default function RootLayout() {
 
   return (
     <>
-      <StatusBar style="light" />
+      <StatusBar style={theme.isDark ? 'light' : 'dark'} />
       <Stack
         screenOptions={{
-          headerStyle: { backgroundColor: Colors.background },
-          headerTintColor: Colors.text,
+          headerStyle: { backgroundColor: theme.background },
+          headerTintColor: theme.text,
           headerTitleStyle: { fontWeight: 'bold' },
-          contentStyle: { backgroundColor: Colors.background },
+          contentStyle: { backgroundColor: theme.background },
           headerShown: false,
         }}
       >

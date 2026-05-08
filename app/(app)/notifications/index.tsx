@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, RefreshControl } from 'react-native';
-import { Colors, Spacing, Radius } from '../../../src/constants/theme';
+import { useTheme, Spacing, Radius } from '../../../src/constants/theme';
 import { apiClient } from '../../../src/api/client';
 import { useAuthStore } from '../../../src/store/authStore';
 import { Bell, Check } from 'lucide-react-native';
@@ -16,6 +16,8 @@ interface Notification {
 }
 
 export default function NotificationsScreen() {
+  const theme = useTheme();
+  const styles = createStyles(theme);
   const { isAuthenticated } = useAuthStore();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
@@ -51,16 +53,16 @@ export default function NotificationsScreen() {
 
   const getTypeColor = (type: string | null) => {
     switch (type) {
-      case 'TASK_ASSIGNED': return Colors.videographer;
-      case 'LEAD_TRANSFER': return Colors.marketing;
-      default: return Colors.admin;
+      case 'TASK_ASSIGNED': return theme.videographer;
+      case 'LEAD_TRANSFER': return theme.marketing;
+      default: return theme.admin;
     }
   };
 
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color={Colors.admin} />
+        <ActivityIndicator size="large" color={theme.admin} />
       </View>
     );
   }
@@ -72,11 +74,11 @@ export default function NotificationsScreen() {
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={() => fetchNotifications(true)} />
+          <RefreshControl refreshing={refreshing} onRefresh={() => fetchNotifications(true)} tintColor={theme.admin} />
         }
         ListEmptyComponent={
           <View style={styles.empty}>
-            <Bell size={40} color={Colors.textDark} />
+            <Bell size={40} color={theme.textDark} />
             <Text style={styles.emptyText}>No notifications yet</Text>
           </View>
         }
@@ -85,7 +87,7 @@ export default function NotificationsScreen() {
             <View style={styles.cardHeader}>
               <View style={[styles.typeDot, { backgroundColor: getTypeColor(item.type) }]} />
               <Text style={styles.cardTitle}>{item.title}</Text>
-              {item.isRead && <Check size={14} color={Colors.success} />}
+              {item.isRead && <Check size={14} color={theme.success} />}
             </View>
             <Text style={styles.cardMessage}>{item.message}</Text>
             <Text style={styles.cardTime}>
@@ -98,22 +100,22 @@ export default function NotificationsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.background },
+const createStyles = (theme: any) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: theme.background },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: theme.background },
   list: { padding: Spacing.md },
   card: {
-    backgroundColor: Colors.surface,
+    backgroundColor: theme.surface,
     padding: Spacing.md,
     borderRadius: Radius.md,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: theme.border,
     marginBottom: Spacing.sm,
   },
   unreadCard: {
     borderLeftWidth: 3,
-    borderLeftColor: Colors.admin,
-    backgroundColor: Colors.admin + '08',
+    borderLeftColor: theme.admin,
+    backgroundColor: theme.admin + '08',
   },
   cardHeader: {
     flexDirection: 'row',
@@ -127,19 +129,19 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   cardTitle: {
-    color: Colors.text,
+    color: theme.text,
     fontSize: 14,
     fontWeight: 'bold',
     flex: 1,
   },
   cardMessage: {
-    color: Colors.textDim,
+    color: theme.textDim,
     fontSize: 13,
     lineHeight: 20,
     marginBottom: 6,
   },
   cardTime: {
-    color: Colors.textDark,
+    color: theme.textDark,
     fontSize: 10,
   },
   empty: {
@@ -148,7 +150,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   emptyText: {
-    color: Colors.textDark,
+    color: theme.textDark,
     fontSize: 14,
   },
 });

@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { Colors, Radius, Spacing } from '../constants/theme';
+import { useTheme, Radius, Spacing } from '../constants/theme';
 import { UserRole } from '../store/authStore';
 
 interface RoleBadgeProps {
@@ -8,15 +8,17 @@ interface RoleBadgeProps {
 }
 
 export const RoleBadge: React.FC<RoleBadgeProps> = ({ role }) => {
+  const theme = useTheme();
+
   const getRoleConfig = () => {
     switch (role) {
-      case 'ADMIN': return { color: Colors.admin, label: 'ADMIN' };
-      case 'MANAGER': return { color: Colors.manager, label: 'MANAGER' };
-      case 'MARKETING': return { color: Colors.marketing, label: 'MARKETING' };
-      case 'RECEPTIONIST': return { color: Colors.receptionist, label: 'RECEPTIONIST' };
-      case 'VIDEOGRAPHER': return { color: Colors.videographer, label: 'VIDEOGRAPHER' };
-      case 'EDITOR': return { color: Colors.editor, label: 'EDITOR' };
-      default: return { color: Colors.textDim, label: role };
+      case 'ADMIN': return { color: theme.admin, label: 'ADMIN' };
+      case 'MANAGER': return { color: theme.manager, label: 'MANAGER' };
+      case 'MARKETING': return { color: theme.marketing, label: 'MARKETING' };
+      case 'RECEPTIONIST': return { color: theme.receptionist, label: 'RECEPTIONIST' };
+      case 'VIDEOGRAPHER': return { color: theme.videographer, label: 'VIDEOGRAPHER' };
+      case 'EDITOR': return { color: theme.editor, label: 'EDITOR' };
+      default: return { color: theme.textDim, label: role };
     }
   };
 

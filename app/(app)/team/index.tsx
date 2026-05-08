@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert, Modal, ScrollView, KeyboardAvoidingView, Platform, RefreshControl } from 'react-native';
-import { Colors, Spacing, Radius } from '../../../src/constants/theme';
+import { useTheme, Spacing, Radius } from '../../../src/constants/theme';
 import { apiClient } from '../../../src/api/client';
 import { Input } from '../../../src/components/Input';
 import Button from '../../../src/components/AppButton';
 import { RoleBadge } from '../../../src/components/RoleBadge';
-import { UserPlus, X, Phone, Mail, Trash2, Target, BadgeCheck } from 'lucide-react-native';
+import { UserPlus, X, Phone, Mail, Trash2, Target, BadgeCheck, Users } from 'lucide-react-native';
 import { UserRole, useAuthStore } from '../../../src/store/authStore';
 
 interface Member {
@@ -22,16 +22,9 @@ const ROLES: UserRole[] = ['MANAGER', 'MARKETING', 'RECEPTIONIST', 'VIDEOGRAPHER
 
 import { Select } from '../../../src/components/Select';
 
-const ROLE_OPTIONS = [
-  { label: 'Admin', value: 'ADMIN', color: Colors.admin },
-  { label: 'Manager', value: 'MANAGER', color: Colors.manager },
-  { label: 'Marketing', value: 'MARKETING', color: Colors.marketing },
-  { label: 'Receptionist', value: 'RECEPTIONIST', color: Colors.receptionist },
-  { label: 'Videographer', value: 'VIDEOGRAPHER', color: Colors.videographer },
-  { label: 'Editor', value: 'EDITOR', color: Colors.editor },
-];
-
 const TeamManagement = () => {
+  const theme = useTheme();
+  const styles = createStyles(theme);
   const { user, isAuthenticated } = useAuthStore();
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
@@ -52,6 +45,15 @@ const TeamManagement = () => {
   const [targetCount, setTargetCount] = useState('');
   const [targetNotes, setTargetNotes] = useState('');
   const [settingTarget, setSettingTarget] = useState(false);
+
+  const ROLE_OPTIONS = [
+    { label: 'Admin', value: 'ADMIN', color: theme.admin },
+    { label: 'Manager', value: 'MANAGER', color: theme.manager },
+    { label: 'Marketing', value: 'MARKETING', color: theme.marketing },
+    { label: 'Receptionist', value: 'RECEPTIONIST', color: theme.receptionist },
+    { label: 'Videographer', value: 'VIDEOGRAPHER', color: theme.videographer },
+    { label: 'Editor', value: 'EDITOR', color: theme.editor },
+  ];
 
   const fetchMembers = async (pageNum = 1, isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
@@ -178,18 +180,6 @@ const TeamManagement = () => {
     return name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
   };
 
-  const getRoleColor = (role: UserRole) => {
-    const map: Record<string, string> = {
-      ADMIN: Colors.admin,
-      MANAGER: Colors.manager,
-      MARKETING: Colors.marketing,
-      RECEPTIONIST: Colors.receptionist,
-      VIDEOGRAPHER: Colors.videographer,
-      EDITOR: Colors.editor,
-    };
-    return map[role] || Colors.textDim;
-  };
-
   if (user?.role !== 'ADMIN' && user?.role !== 'MANAGER') {
     return (
       <View style={styles.emptyState}>
@@ -217,12 +207,12 @@ const TeamManagement = () => {
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => fetchMembers(1, true)} tintColor={Colors.admin} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => fetchMembers(1, true)} tintColor={theme.admin} />}
         onEndReached={loadMore}
         onEndReachedThreshold={0.5}
         ListEmptyComponent={() => !loading ? (
           <View style={styles.emptyState}>
-            <Users size={48} color={Colors.border} />
+            <Users size={48} color={theme.border} />
             <Text style={styles.emptyText}>No team members found</Text>
           </View>
         ) : null}
@@ -241,7 +231,7 @@ const TeamManagement = () => {
                       <View style={styles.nameRow}>
                         <Text style={styles.memberName}>{item.name}</Text>
                         {item.emailVerified && !item.isFirstLogin && (
-                          <BadgeCheck size={14} color={Colors.admin} />
+                          <BadgeCheck size={14} color={theme.admin} />
                         )}
                       </View>
                       <RoleBadge role={item.role as any} />
@@ -253,12 +243,12 @@ const TeamManagement = () => {
                         onPress={() => { setSelectedStaff(item); setShowTargetForm(true); }}
                         style={styles.actionBtn}
                       >
-                        <Target size={16} color={Colors.marketing} />
+                        <Target size={16} color={theme.marketing} />
                       </TouchableOpacity>
                     )}
                     {item.id !== user?.id && !(user?.role === 'MANAGER' && item.role === 'ADMIN') && (
                       <TouchableOpacity onPress={() => handleDelete(item)} style={[styles.actionBtn, styles.deleteBtn]}>
-                        <Trash2 size={16} color={Colors.error} />
+                        <Trash2 size={16} color={theme.error} />
                       </TouchableOpacity>
                     )}
                   </View>
@@ -266,12 +256,12 @@ const TeamManagement = () => {
 
                 <View style={styles.memberDetails}>
                   <View style={styles.detailRow}>
-                    <Mail size={12} color={Colors.textDark} />
+                    <Mail size={12} color={theme.textDark} />
                     <Text style={styles.detailText}>{item.email}</Text>
                   </View>
                   {item.phone && (
                     <View style={styles.detailRow}>
-                      <Phone size={12} color={Colors.textDark} />
+                      <Phone size={12} color={theme.textDark} />
                       <Text style={styles.detailText}>{item.phone}</Text>
                     </View>
                   )}
@@ -292,7 +282,7 @@ const TeamManagement = () => {
                 <Text style={styles.modalSubtitle}>For {selectedStaff?.name}</Text>
               </View>
               <TouchableOpacity onPress={() => setShowTargetForm(false)} style={styles.closeBtn}>
-                <X color={Colors.text} size={20} />
+                <X color={theme.text} size={20} />
               </TouchableOpacity>
             </View>
             <ScrollView showsVerticalScrollIndicator={false} style={styles.modalBody}>
@@ -302,7 +292,7 @@ const TeamManagement = () => {
             <View style={styles.modalFooter}>
               <Button title="Cancel" variant="outline" onPress={() => setShowTargetForm(false)} style={{ flex: 1 }} />
               <View style={{ width: 12 }} />
-              <Button title="Set Target" onPress={handleSetTarget} loading={settingTarget} style={{ flex: 2, backgroundColor: Colors.marketing }} />
+              <Button title="Set Target" onPress={handleSetTarget} loading={settingTarget} style={{ flex: 2, backgroundColor: theme.marketing }} />
             </View>
           </View>
         </KeyboardAvoidingView>
@@ -318,7 +308,7 @@ const TeamManagement = () => {
                 <Text style={styles.modalSubtitle}>Create a new staff account</Text>
               </View>
               <TouchableOpacity onPress={() => setShowForm(false)} style={styles.closeBtn}>
-                <X color={Colors.text} size={20} />
+                <X color={theme.text} size={20} />
               </TouchableOpacity>
             </View>
 
@@ -342,7 +332,7 @@ const TeamManagement = () => {
                 title="Create Account"
                 onPress={handleRegister}
                 loading={submitting}
-                style={{ flex: 1, backgroundColor: Colors.admin, height: 56, borderRadius: Radius.full }}
+                style={{ flex: 1, backgroundColor: theme.admin, height: 56, borderRadius: Radius.full }}
               />
             </View>
           </View>
@@ -354,10 +344,10 @@ const TeamManagement = () => {
 
 export default TeamManagement;
 
-const styles = StyleSheet.create({
+const createStyles = (theme: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: theme.background,
   },
   header: {
     flexDirection: 'row',
@@ -368,13 +358,13 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing.md,
   },
   title: {
-    color: Colors.text,
+    color: theme.text,
     fontSize: 28,
     fontWeight: '800',
     letterSpacing: -0.5,
   },
   subtitle: {
-    color: Colors.textDim,
+    color: theme.textDim,
     fontSize: 13,
     marginTop: 2,
     fontWeight: '500',
@@ -383,11 +373,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: Colors.admin,
+    backgroundColor: theme.admin,
     paddingVertical: 10,
     paddingHorizontal: 16,
     borderRadius: Radius.full,
-    shadowColor: Colors.admin,
+    shadowColor: theme.admin,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
@@ -404,13 +394,13 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing.xxl,
   },
   memberCard: {
-    backgroundColor: Colors.surface,
+    backgroundColor: theme.surface,
     borderRadius: Radius.xxxl,
     marginBottom: Spacing.md,
     flexDirection: 'row',
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: theme.border,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.08,
@@ -458,7 +448,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   memberName: {
-    color: Colors.text,
+    color: theme.text,
     fontSize: 18,
     fontWeight: '700',
   },
@@ -473,7 +463,7 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   detailText: {
-    color: Colors.textDark,
+    color: theme.textDark,
     fontSize: 13,
     fontWeight: '500',
   },
@@ -485,14 +475,14 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: Radius.full,
-    backgroundColor: Colors.background,
+    backgroundColor: theme.background,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: theme.border,
     justifyContent: 'center',
     alignItems: 'center',
   },
   deleteBtn: {
-    borderColor: Colors.error + '30',
+    borderColor: theme.error + '30',
   },
   emptyState: {
     alignItems: 'center',
@@ -501,7 +491,7 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   emptyText: {
-    color: Colors.textDark,
+    color: theme.textDark,
     fontSize: 15,
     marginTop: Spacing.md,
     fontWeight: '600',
@@ -512,13 +502,13 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: Colors.background,
+    backgroundColor: theme.background,
     borderTopLeftRadius: Radius.xxxl,
     borderTopRightRadius: Radius.xxxl,
     maxHeight: '90%',
   },
   registerModal: {
-    backgroundColor: Colors.background,
+    backgroundColor: theme.background,
     borderTopLeftRadius: Radius.xxxl,
     borderTopRightRadius: Radius.xxxl,
     maxHeight: '90%',
@@ -529,22 +519,22 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     padding: Spacing.xl,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    borderBottomColor: theme.border,
   },
   modalTitle: {
     fontSize: 24,
     fontWeight: '900',
-    color: Colors.text,
+    color: theme.text,
     letterSpacing: -0.5,
   },
   modalSubtitle: {
     fontSize: 14,
-    color: Colors.textDim,
+    color: theme.textDim,
     marginTop: 4,
   },
   closeBtn: {
     padding: 8,
-    backgroundColor: Colors.surface,
+    backgroundColor: theme.surface,
     borderRadius: 20,
   },
   modalBody: {
@@ -553,10 +543,10 @@ const styles = StyleSheet.create({
   modalFooter: {
     flexDirection: 'row',
     padding: Spacing.lg,
-    paddingBottom: Spacing.xxxl,
-    backgroundColor: Colors.surface,
+    paddingBottom: Spacing.xxl,
+    backgroundColor: theme.surface,
     borderTopWidth: 1,
-    borderTopColor: Colors.border,
+    borderTopColor: theme.border,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -4 },
     shadowOpacity: 0.05,

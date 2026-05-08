@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl } from 'react-native';
-import { Colors, Spacing, Radius } from '../../src/constants/theme';
+import { useTheme, Spacing, Radius } from '../../src/constants/theme';
 import { useAuthStore } from '../../src/store/authStore';
 import { apiClient } from '../../src/api/client';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -13,12 +13,13 @@ import {
   Clock, 
   CheckCircle2, 
   PlusCircle,
-  LogOut,
   FileText,
   LayoutDashboard,
-  Calendar
+  Calendar,
+  ChevronRight,
+  CircleDollarSign
 } from 'lucide-react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 
 interface DashboardStats {
   totalLeads?: number;
@@ -26,11 +27,15 @@ interface DashboardStats {
   activeTasks?: number;
   completedTasks?: number;
   totalEarned?: number;
+  pipeline?: number;
+  booked?: number;
   monthlyTarget?: number;
   currentProgress?: number;
 }
 
 export default function Dashboard() {
+  const theme = useTheme();
+  const styles = createStyles(theme);
   const { user, logout, isAuthenticated } = useAuthStore();
   const [stats, setStats] = useState<DashboardStats>({});
   const [leaderboard, setLeaderboard] = useState<any[]>([]);
@@ -38,34 +43,47 @@ export default function Dashboard() {
   const router = useRouter();
   const role = user?.role;
 
-  const fetchDashboardData = async () => {
+  const fetchDashboardData = useCallback(async () => {
     setLoading(true);
     try {
       const isAdminOrManager = role === 'ADMIN' || role === 'MANAGER';
-      const isMarketingOrRec = role === 'MARKETING' || role === 'RECEPTIONIST';
       
       let combinedStats: DashboardStats = {};
 
-      // Only fetch business summary for management and front-office roles
-      if (isAdminOrManager || isMarketingOrRec) {
+      // 1. Fetch general summary
+      try {
+        const sumRes = await apiClient.get('/reporting/summary');
+        combinedStats = { ...combinedStats, ...sumRes.data };
+      } catch (e) {
+        console.warn('Global summary unavailable', e);
+      }
+
+      // 2. Fetch personal stats for staff roles
+      if (!isAdminOrManager) {
         try {
-          const sumRes = await apiClient.get('/reporting/summary');
-          combinedStats = { ...combinedStats, ...sumRes.data };
+          const meRes = await apiClient.get('/reporting/me/stats');
+          combinedStats = { ...combinedStats, ...meRes.data };
         } catch (e) {
-          console.warn('Reporting summary restricted or unavailable', e);
+          console.warn('Personal stats unavailable', e);
         }
       }
 
+      // 3. Fetch admin-only deep insights
       if (isAdminOrManager) {
         try {
           const [leaderRes, finRes] = await Promise.all([
             apiClient.get('/reporting/leaderboard'),
-            apiClient.get('/reporting/finance').catch(() => ({ data: { earned: 0 } }))
+            apiClient.get('/reporting/finance').catch(() => ({ data: { earned: 0, pipeline: 0, booked: 0 } }))
           ]);
           setLeaderboard(leaderRes.data.slice(0, 3));
-          combinedStats.totalEarned = finRes.data.earned;
+          combinedStats = {
+            ...combinedStats,
+            totalEarned: finRes.data.earned,
+            pipeline: finRes.data.pipeline,
+            booked: finRes.data.booked
+          };
         } catch (e) {
-          console.warn('Admin stats restricted or unavailable', e);
+          console.warn('Admin stats restricted', e);
         }
       }
 
@@ -75,14 +93,17 @@ export default function Dashboard() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [role, apiClient]);
 
-  useEffect(() => {
-    if (!isAuthenticated) return;
-    fetchDashboardData();
-  }, [isAuthenticated]);
+  useFocusEffect(
+    useCallback(() => {
+      if (isAuthenticated) {
+        fetchDashboardData();
+      }
+    }, [isAuthenticated, fetchDashboardData])
+  );
 
-  const renderStatCard = (title: string, value: string | number, icon: any, color: string) => (
+  const renderStatCard = useCallback((title: string, value: string | number, icon: any, color: string) => (
     <View style={styles.statCard}>
       <View style={[styles.iconContainer, { backgroundColor: color + '15' }]}>
         {React.createElement(icon, { size: 18, color: color })}
@@ -92,9 +113,9 @@ export default function Dashboard() {
         <Text style={styles.statTitle}>{title}</Text>
       </View>
     </View>
-  );
+  ), [styles]);
 
-  const renderQuickAction = (title: string, icon: any, route: string, color: string) => (
+  const renderQuickAction = useCallback((title: string, icon: any, route: string, color: string) => (
     <TouchableOpacity 
       style={styles.actionButton} 
       onPress={() => router.push(route as any)}
@@ -105,104 +126,120 @@ export default function Dashboard() {
       </View>
       <Text style={styles.actionText}>{title}</Text>
     </TouchableOpacity>
-  );
+  ), [styles, router]);
 
-  const renderRoleSpecificContent = () => {
+  const roleSpecificContent = useMemo(() => {
     if (role === 'ADMIN' || role === 'MANAGER') {
       return (
         <>
-          {/* Executive Hero KPI */}
           <View style={styles.section}>
             <LinearGradient 
-              colors={['#1E1B4B', '#4338CA']} 
+              colors={['#020617', '#1E1B4B']} 
               start={{ x: 0, y: 0 }} 
               end={{ x: 1, y: 1 }} 
               style={styles.execHeroGradientCard}
             >
               <View style={styles.execHeroHeader}>
-                <Text style={styles.execHeroTitleGradient}>Total Revenue</Text>
-                <View style={[styles.execGrowthBadge, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
-                  <TrendingUp size={12} color="#A7F3D0" />
-                  <Text style={[styles.execGrowthText, { color: '#A7F3D0' }]}>+14%</Text>
+                <View style={styles.execTitleRow}>
+                  <CircleDollarSign size={18} color={theme.success} style={{ marginRight: 8 }} />
+                  <Text style={styles.execHeroTitleGradient}>Revenue Intelligence</Text>
+                </View>
+                <View style={styles.liveIndicator}>
+                  <View style={styles.liveDot} />
+                  <Text style={styles.liveText}>LIVE</Text>
                 </View>
               </View>
-              <Text style={styles.execHeroValueGradient}>₹{(stats.totalEarned || 0).toLocaleString()}</Text>
-              <Text style={styles.execHeroSubGradient}>Current Month Performance</Text>
+              
+              <View style={styles.mainRevenueContainer}>
+                <Text style={styles.revenueMainValue}>₹{(stats.totalEarned || 0).toLocaleString()}</Text>
+                <Text style={styles.revenueMainLabel}>REALIZED INCOME</Text>
+              </View>
+
+              <View style={styles.progressTrack}>
+                <View style={[styles.progressFill, { width: '65%', backgroundColor: theme.success }]} />
+              </View>
+              
+              <View style={styles.revenueBreakdownGrid}>
+                <View style={styles.breakdownItem}>
+                  <View style={styles.breakdownHeader}>
+                    <View style={[styles.dot, { backgroundColor: theme.warning }]} />
+                    <Text style={styles.breakdownLabel}>BOOKED</Text>
+                  </View>
+                  <Text style={styles.breakdownValue}>₹{(stats.booked || 0).toLocaleString()}</Text>
+                </View>
+                <View style={styles.breakdownDivider} />
+                <View style={styles.breakdownItem}>
+                  <View style={styles.breakdownHeader}>
+                    <View style={[styles.dot, { backgroundColor: theme.info }]} />
+                    <Text style={styles.breakdownLabel}>PIPELINE</Text>
+                  </View>
+                  <Text style={styles.breakdownValue}>₹{(stats.pipeline || 0).toLocaleString()}</Text>
+                </View>
+              </View>
+
+              <View style={styles.execHeroFooter}>
+                <TrendingUp size={14} color={theme.success} />
+                <Text style={styles.execFooterText}>18.4% growth from previous cycle</Text>
+              </View>
             </LinearGradient>
           </View>
 
-          {/* Operations Pipeline */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Operations Pipeline</Text>
+            <Text style={styles.sectionTitle}>Strategic Pipeline</Text>
             <View style={styles.execPipelineGrid}>
-              <View style={[styles.execPipelineCard, { borderLeftColor: Colors.manager }]}>
-                <View style={[styles.execIconCircle, { backgroundColor: Colors.manager + '15' }]}>
-                  <Users size={18} color={Colors.manager} />
+              <TouchableOpacity style={styles.premiumPipelineCard} onPress={() => router.push('/(app)/leads')}>
+                <LinearGradient colors={[theme.marketing + '20', theme.marketing + '05']} style={styles.premiumCardIcon}>
+                  <Users size={20} color={theme.marketing} />
+                </LinearGradient>
+                <View style={styles.premiumCardContent}>
+                  <Text style={styles.premiumCardValue}>{stats.totalLeads || 0}</Text>
+                  <Text style={styles.premiumCardLabel}>Market Capture</Text>
                 </View>
-                <View style={styles.execPipelineInfo}>
-                  <Text style={styles.execPipelineValue}>{stats.totalLeads || 0}</Text>
-                  <Text style={styles.execPipelineLabel}>Total Leads</Text>
-                </View>
-              </View>
+                <ChevronRight size={16} color={theme.border} />
+              </TouchableOpacity>
 
-              <View style={[styles.execPipelineCard, { borderLeftColor: Colors.receptionist }]}>
-                <View style={[styles.execIconCircle, { backgroundColor: Colors.receptionist + '15' }]}>
-                  <Clock size={18} color={Colors.receptionist} />
+              <TouchableOpacity style={styles.premiumPipelineCard} onPress={() => router.push('/(app)/tasks')}>
+                <LinearGradient colors={[theme.videographer + '20', theme.videographer + '05']} style={styles.premiumCardIcon}>
+                  <Video size={20} color={theme.videographer} />
+                </LinearGradient>
+                <View style={styles.premiumCardContent}>
+                  <Text style={styles.premiumCardValue}>{stats.activeTasks || 0}</Text>
+                  <Text style={styles.premiumCardLabel}>Production Pipeline</Text>
                 </View>
-                <View style={styles.execPipelineInfo}>
-                  <Text style={styles.execPipelineValue}>{stats.pendingQualification || 0}</Text>
-                  <Text style={styles.execPipelineLabel}>Pending Qual.</Text>
-                </View>
-              </View>
-
-              <View style={[styles.execPipelineCard, { borderLeftColor: Colors.videographer }]}>
-                <View style={[styles.execIconCircle, { backgroundColor: Colors.videographer + '15' }]}>
-                  <Video size={18} color={Colors.videographer} />
-                </View>
-                <View style={styles.execPipelineInfo}>
-                  <Text style={styles.execPipelineValue}>{stats.activeTasks || 0}</Text>
-                  <Text style={styles.execPipelineLabel}>Active Tasks</Text>
-                </View>
-              </View>
+                <ChevronRight size={16} color={theme.border} />
+              </TouchableOpacity>
             </View>
           </View>
 
-          {/* Elevated Leaderboard */}
           {leaderboard.length > 0 && (
             <View style={styles.section}>
               <View style={styles.execLeaderboardHeader}>
-                <Text style={styles.sectionTitle}>Marketing Leaderboard</Text>
+                <Text style={styles.sectionTitle}>Performance Elite</Text>
                 <TouchableOpacity onPress={() => router.push('/(app)/reporting')}>
-                  <Text style={styles.execViewAllLink}>See All</Text>
+                  <Text style={styles.execViewAllLink}>Analytics</Text>
                 </TouchableOpacity>
               </View>
               <View style={styles.execLeaderboardCard}>
                 {leaderboard.map((item, index) => (
                   <View key={item.id || index} style={[styles.execLeaderboardRow, index !== leaderboard.length - 1 && styles.execBorderBottom]}>
-                    <View style={[styles.execRankBadge, index === 0 && styles.execRankGold]}>
-                      <Text style={[styles.execRankText, index === 0 && { color: '#fff' }]}>{index + 1}</Text>
-                    </View>
+                    <Text style={styles.rankText}>#{index + 1}</Text>
                     <View style={styles.execStaffInfo}>
                       <Text style={styles.execStaffName}>{item.name}</Text>
-                      <Text style={styles.execStaffRole}>Marketing</Text>
+                      <Text style={styles.execStaffRole}>Marketing Strategist</Text>
                     </View>
-                    <View style={styles.execLeadBadge}>
-                      <Target size={12} color={Colors.admin} />
-                      <Text style={styles.execLeadCountText}>{item.leadsCount}</Text>
-                    </View>
+                    <Text style={styles.rankValue}>{item.leadsCount} pts</Text>
                   </View>
                 ))}
               </View>
             </View>
           )}
 
-          {/* Management Hub */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Management Hub</Text>
+            <Text style={styles.sectionTitle}>Operations Desk</Text>
             <View style={styles.actionsGrid}>
-              {renderQuickAction('Team', Users, '/(app)/team', Colors.admin)}
-              {renderQuickAction('Leads', FileText, '/(app)/leads', Colors.marketing)}
-              {renderQuickAction('Assign', PlusCircle, '/(app)/manager/assign', Colors.manager)}
+              {renderQuickAction('Team', Users, '/(app)/team', theme.admin)}
+              {renderQuickAction('Leads', FileText, '/(app)/leads', theme.marketing)}
+              {renderQuickAction('Assign', PlusCircle, '/(app)/manager/assign', theme.manager)}
             </View>
           </View>
         </>
@@ -234,9 +271,9 @@ export default function Dashboard() {
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Conversion Funnel</Text>
             <View style={styles.execPipelineGrid}>
-              <View style={[styles.execPipelineCard, { borderLeftColor: Colors.marketing }]}>
-                <View style={[styles.execIconCircle, { backgroundColor: Colors.marketing + '15' }]}>
-                  <Users size={18} color={Colors.marketing} />
+              <View style={[styles.execPipelineCard, { borderLeftColor: theme.marketing }]}>
+                <View style={[styles.execIconCircle, { backgroundColor: theme.marketing + '15' }]}>
+                  <Users size={18} color={theme.marketing} />
                 </View>
                 <View style={styles.execPipelineInfo}>
                   <Text style={styles.execPipelineValue}>{stats.totalLeads || 0}</Text>
@@ -244,9 +281,9 @@ export default function Dashboard() {
                 </View>
               </View>
 
-              <View style={[styles.execPipelineCard, { borderLeftColor: Colors.warning }]}>
-                <View style={[styles.execIconCircle, { backgroundColor: Colors.warning + '15' }]}>
-                  <Clock size={18} color={Colors.warning} />
+              <View style={[styles.execPipelineCard, { borderLeftColor: theme.warning }]}>
+                <View style={[styles.execIconCircle, { backgroundColor: theme.warning + '15' }]}>
+                  <Clock size={18} color={theme.warning} />
                 </View>
                 <View style={styles.execPipelineInfo}>
                   <Text style={styles.execPipelineValue}>{stats.pendingQualification || 0}</Text>
@@ -254,9 +291,9 @@ export default function Dashboard() {
                 </View>
               </View>
 
-              <View style={[styles.execPipelineCard, { borderLeftColor: Colors.success }]}>
-                <View style={[styles.execIconCircle, { backgroundColor: Colors.success + '15' }]}>
-                  <CheckCircle2 size={18} color={Colors.success} />
+              <View style={[styles.execPipelineCard, { borderLeftColor: theme.success }]}>
+                <View style={[styles.execIconCircle, { backgroundColor: theme.success + '15' }]}>
+                  <CheckCircle2 size={18} color={theme.success} />
                 </View>
                 <View style={styles.execPipelineInfo}>
                   <Text style={styles.execPipelineValue}>{stats.completedTasks || 0}</Text>
@@ -269,8 +306,8 @@ export default function Dashboard() {
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Core Actions</Text>
             <View style={styles.actionsGrid}>
-              {renderQuickAction('Add Lead', PlusCircle, '/(app)/marketing', Colors.marketing)}
-              {renderQuickAction('My Target', Target, '/(app)/target', Colors.warning)}
+              {renderQuickAction('Add Lead', PlusCircle, '/(app)/marketing', theme.marketing)}
+              {renderQuickAction('My Target', Target, '/(app)/target', theme.warning)}
             </View>
           </View>
         </>
@@ -302,9 +339,9 @@ export default function Dashboard() {
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Pipeline Flow</Text>
             <View style={styles.execPipelineGrid}>
-              <View style={[styles.execPipelineCard, { borderLeftColor: Colors.receptionist }]}>
-                <View style={[styles.execIconCircle, { backgroundColor: Colors.receptionist + '15' }]}>
-                  <Users size={18} color={Colors.receptionist} />
+              <View style={[styles.execPipelineCard, { borderLeftColor: theme.receptionist }]}>
+                <View style={[styles.execIconCircle, { backgroundColor: theme.receptionist + '15' }]}>
+                  <Users size={18} color={theme.receptionist} />
                 </View>
                 <View style={styles.execPipelineInfo}>
                   <Text style={styles.execPipelineValue}>{stats.totalLeads || 0}</Text>
@@ -312,9 +349,9 @@ export default function Dashboard() {
                 </View>
               </View>
 
-              <View style={[styles.execPipelineCard, { borderLeftColor: Colors.videographer }]}>
-                <View style={[styles.execIconCircle, { backgroundColor: Colors.videographer + '15' }]}>
-                  <Video size={18} color={Colors.videographer} />
+              <View style={[styles.execPipelineCard, { borderLeftColor: theme.videographer }]}>
+                <View style={[styles.execIconCircle, { backgroundColor: theme.videographer + '15' }]}>
+                  <Video size={18} color={theme.videographer} />
                 </View>
                 <View style={styles.execPipelineInfo}>
                   <Text style={styles.execPipelineValue}>{stats.activeTasks || 0}</Text>
@@ -322,9 +359,9 @@ export default function Dashboard() {
                 </View>
               </View>
 
-              <View style={[styles.execPipelineCard, { borderLeftColor: Colors.success }]}>
-                <View style={[styles.execIconCircle, { backgroundColor: Colors.success + '15' }]}>
-                  <CheckCircle2 size={18} color={Colors.success} />
+              <View style={[styles.execPipelineCard, { borderLeftColor: theme.success }]}>
+                <View style={[styles.execIconCircle, { backgroundColor: theme.success + '15' }]}>
+                  <CheckCircle2 size={18} color={theme.success} />
                 </View>
                 <View style={styles.execPipelineInfo}>
                   <Text style={styles.execPipelineValue}>{stats.completedTasks || 0}</Text>
@@ -337,53 +374,57 @@ export default function Dashboard() {
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Qualify & Track</Text>
             <View style={styles.actionsGrid}>
-              {renderQuickAction('Qualify Leads', ClipboardCheck, '/(app)/receptionist', Colors.receptionist)}
-              {renderQuickAction('All Leads', FileText, '/(app)/leads', Colors.admin)}
+              {renderQuickAction('Qualify Leads', ClipboardCheck, '/(app)/receptionist', theme.receptionist)}
+              {renderQuickAction('All Leads', FileText, '/(app)/leads', theme.admin)}
             </View>
           </View>
         </>
       );
     }
 
-    // Videographers & Editors
     return (
       <>
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Production Status</Text>
           <View style={styles.statsGrid}>
-            {renderStatCard('Assigned', stats.activeTasks || 0, Clock, Colors.warning)}
-            {renderStatCard('Completed', stats.completedTasks || 0, CheckCircle2, Colors.success)}
+            {renderStatCard('Assigned', stats.activeTasks || 0, Clock, theme.warning)}
+            {renderStatCard('Completed', stats.completedTasks || 0, CheckCircle2, theme.success)}
           </View>
         </View>
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Task Center</Text>
           <View style={styles.actionsGrid}>
-            {renderQuickAction('My Tasks', ClipboardCheck, '/(app)/tasks', Colors.videographer)}
-            {renderQuickAction('Calendar', Calendar, '/(app)/tasks/calendar', Colors.info)}
+            {renderQuickAction(
+              role === 'VIDEOGRAPHER' ? 'Shoot Tasks' : 'Edit Tasks', 
+              role === 'VIDEOGRAPHER' ? Video : FileText, 
+              '/(app)/tasks', 
+              role === 'VIDEOGRAPHER' ? theme.videographer : theme.editor
+            )}
+            {renderQuickAction('Calendar', Calendar, '/(app)/tasks/calendar', theme.info)}
           </View>
         </View>
       </>
     );
-  };
+  }, [role, stats, leaderboard, renderQuickAction, renderStatCard, theme]);
 
   return (
     <ScrollView 
       style={styles.container}
       contentContainerStyle={{ paddingBottom: 40 }}
-      refreshControl={<RefreshControl refreshing={loading} onRefresh={fetchDashboardData} tintColor={Colors.admin} />}
+      refreshControl={<RefreshControl refreshing={loading} onRefresh={fetchDashboardData} tintColor={theme.admin} />}
     >
       <View style={styles.header}>
         <View>
           <Text style={styles.greeting}>Hello, {user?.name?.split(' ')[0]}</Text>
           <Text style={styles.roleText}>{user?.role} WORKSPACE</Text>
         </View>
-        <View style={[styles.avatarSmall, { backgroundColor: Colors.admin + '20' }]}>
-          <Text style={styles.avatarLetter}>{user?.name?.[0]}</Text>
+        <View style={[styles.avatarSmall, { backgroundColor: theme.admin + '20' }]}>
+          <Text style={[styles.avatarLetter, { color: theme.admin }]}>{user?.name?.[0]}</Text>
         </View>
       </View>
 
       <View style={styles.roleBanner}>
-        <LayoutDashboard size={16} color={Colors.admin} />
+        <LayoutDashboard size={16} color={theme.admin} />
         <Text style={styles.roleBannerText}>
           {role === 'ADMIN' || role === 'MANAGER'
             ? 'You are viewing management insights and team controls.'
@@ -395,15 +436,15 @@ export default function Dashboard() {
         </Text>
       </View>
 
-      {renderRoleSpecificContent()}
+      {roleSpecificContent}
     </ScrollView>
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: theme.background,
   },
   header: {
     padding: Spacing.xl,
@@ -413,13 +454,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   greeting: {
-    color: Colors.text,
+    color: theme.text,
     fontSize: 28,
     fontWeight: '800',
     letterSpacing: -0.5,
   },
   roleText: {
-    color: Colors.textDark,
+    color: theme.textDark,
     fontSize: 10,
     fontWeight: 'bold',
     letterSpacing: 2,
@@ -432,10 +473,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: theme.border,
   },
   avatarLetter: {
-    color: Colors.admin,
     fontWeight: '800',
     fontSize: 18,
   },
@@ -447,9 +487,9 @@ const styles = StyleSheet.create({
   roleBanner: {
     marginHorizontal: Spacing.lg,
     marginBottom: Spacing.lg,
-    backgroundColor: Colors.surface,
+    backgroundColor: theme.surface,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: theme.border,
     borderRadius: Radius.xl,
     padding: Spacing.md,
     flexDirection: 'row',
@@ -457,14 +497,14 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   roleBannerText: {
-    color: Colors.textDim,
+    color: theme.textDim,
     flex: 1,
     fontSize: 12,
     lineHeight: 18,
     fontWeight: '600',
   },
   sectionTitle: {
-    color: Colors.text,
+    color: theme.text,
     fontSize: 14,
     fontWeight: '800',
     letterSpacing: 1,
@@ -478,13 +518,13 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   statCard: {
-    backgroundColor: Colors.surface,
+    backgroundColor: theme.surface,
     flex: 1,
     minWidth: '45%',
     padding: Spacing.md,
     borderRadius: Radius.xxl,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: theme.border,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
@@ -497,12 +537,12 @@ const styles = StyleSheet.create({
     borderRadius: Radius.md,
   },
   statValue: {
-    color: Colors.text,
+    color: theme.text,
     fontSize: 16,
     fontWeight: '800',
   },
   statTitle: {
-    color: Colors.textDim,
+    color: theme.textDim,
     fontSize: 10,
     fontWeight: '600',
     marginTop: 1,
@@ -512,11 +552,11 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   actionButton: {
-    backgroundColor: Colors.surface,
+    backgroundColor: theme.surface,
     padding: Spacing.lg,
     borderRadius: Radius.xxl,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: theme.border,
     alignItems: 'center',
     gap: 8,
     flex: 1,
@@ -529,72 +569,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   actionText: {
-    color: Colors.text,
+    color: theme.text,
     fontSize: 12,
     fontWeight: '700',
-  },
-  leaderboardCard: {
-    backgroundColor: Colors.surface,
-    borderRadius: Radius.xxxl,
-    padding: Spacing.md,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    overflow: 'hidden',
-  },
-  leaderboardRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 10,
-    borderRadius: Radius.xl,
-    marginBottom: 4,
-  },
-  topRank: {
-    backgroundColor: Colors.admin,
-  },
-  rankBadge: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: 'rgba(0,0,0,0.1)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  rankText: {
-    color: Colors.textDark,
-    fontSize: 12,
-    fontWeight: '800',
-  },
-  staffName: {
-    color: Colors.text,
-    fontSize: 14,
-    fontWeight: '600',
-    flex: 1,
-  },
-  leadCountBadge: {
-    backgroundColor: 'rgba(0,0,0,0.05)',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: Radius.full,
-  },
-  countText: {
-    color: Colors.textDark,
-    fontSize: 11,
-    fontWeight: '800',
-  },
-  viewAllBtn: {
-    paddingVertical: 12,
-    marginTop: 4,
-    alignItems: 'center',
-    borderTopWidth: 1,
-    borderTopColor: Colors.border,
-  },
-  viewAllLink: {
-    color: Colors.admin,
-    fontSize: 12,
-    fontWeight: '800',
-    textTransform: 'uppercase',
-    letterSpacing: 1,
   },
   execHeroGradientCard: {
     borderRadius: Radius.xxxl,
@@ -617,6 +594,70 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     textTransform: 'uppercase',
     letterSpacing: 1,
+  },
+  liveIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: Radius.full,
+    gap: 6,
+  },
+  liveDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: theme.success,
+  },
+  liveText: {
+    fontSize: 10,
+    fontWeight: '900',
+    color: '#fff',
+    letterSpacing: 1,
+  },
+  premiumPipelineCard: {
+    backgroundColor: theme.surface,
+    padding: Spacing.md,
+    borderRadius: Radius.xxl,
+    borderWidth: 1,
+    borderColor: theme.border,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+    marginBottom: 4,
+  },
+  premiumCardIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: Radius.xl,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  premiumCardContent: {
+    flex: 1,
+  },
+  premiumCardValue: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: theme.text,
+  },
+  premiumCardLabel: {
+    fontSize: 12,
+    color: theme.textDim,
+    fontWeight: '600',
+  },
+  rankText: {
+    fontSize: 14,
+    fontWeight: '900',
+    color: theme.textDark,
+    marginRight: 12,
+    width: 30,
+  },
+  rankValue: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: theme.text,
   },
   execGrowthBadge: {
     flexDirection: 'row',
@@ -642,6 +683,88 @@ const styles = StyleSheet.create({
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 4,
   },
+  execTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  mainRevenueContainer: {
+    alignItems: 'center',
+    marginVertical: Spacing.lg,
+  },
+  revenueMainValue: {
+    fontSize: 44,
+    fontWeight: '900',
+    color: '#fff',
+    letterSpacing: -1.5,
+  },
+  revenueMainLabel: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: 'rgba(255,255,255,0.5)',
+    letterSpacing: 2,
+    marginTop: -4,
+  },
+  progressTrack: {
+    height: 6,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 3,
+    marginBottom: Spacing.xl,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    borderRadius: 3,
+  },
+  revenueBreakdownGrid: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(0,0,0,0.2)',
+    padding: Spacing.lg,
+    borderRadius: Radius.xl,
+    marginBottom: Spacing.lg,
+  },
+  breakdownItem: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  breakdownHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+    gap: 6,
+  },
+  dot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  breakdownLabel: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: 'rgba(255,255,255,0.6)',
+    letterSpacing: 1,
+  },
+  breakdownValue: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#fff',
+  },
+  breakdownDivider: {
+    width: 1,
+    height: '60%',
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    alignSelf: 'center',
+  },
+  execHeroFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    justifyContent: 'center',
+  },
+  execFooterText: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.7)',
+    fontWeight: '600',
+  },
   execHeroSubGradient: {
     fontSize: 13,
     color: 'rgba(255,255,255,0.7)',
@@ -651,11 +774,11 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   execPipelineCard: {
-    backgroundColor: Colors.surface,
+    backgroundColor: theme.surface,
     padding: Spacing.md,
     borderRadius: Radius.xxxl,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: theme.border,
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.lg,
@@ -679,11 +802,11 @@ const styles = StyleSheet.create({
   execPipelineValue: {
     fontSize: 22,
     fontWeight: '800',
-    color: Colors.text,
+    color: theme.text,
   },
   execPipelineLabel: {
     fontSize: 13,
-    color: Colors.textDim,
+    color: theme.textDim,
     fontWeight: '500',
     marginTop: 2,
   },
@@ -694,17 +817,17 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   execViewAllLink: {
-    color: Colors.admin,
+    color: theme.admin,
     fontSize: 12,
     fontWeight: '800',
     textTransform: 'uppercase',
   },
   execLeaderboardCard: {
-    backgroundColor: Colors.surface,
+    backgroundColor: theme.surface,
     borderRadius: Radius.xxxl,
     padding: Spacing.md,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: theme.border,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.06,
@@ -719,14 +842,14 @@ const styles = StyleSheet.create({
   },
   execBorderBottom: {
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border + '50',
+    borderBottomColor: theme.border + '50',
     borderRadius: 0,
   },
   execRankBadge: {
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: Colors.surfaceLight,
+    backgroundColor: theme.surfaceLight,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: Spacing.md,
@@ -737,7 +860,7 @@ const styles = StyleSheet.create({
   execRankText: {
     fontSize: 13,
     fontWeight: '800',
-    color: Colors.textDark,
+    color: theme.textDark,
   },
   execStaffInfo: {
     flex: 1,
@@ -745,18 +868,18 @@ const styles = StyleSheet.create({
   execStaffName: {
     fontSize: 15,
     fontWeight: '700',
-    color: Colors.text,
+    color: theme.text,
   },
   execStaffRole: {
     fontSize: 11,
-    color: Colors.textDim,
+    color: theme.textDim,
     fontWeight: '500',
   },
   execLeadBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: Colors.admin + '10',
+    backgroundColor: theme.admin + '10',
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: Radius.full,
@@ -764,6 +887,6 @@ const styles = StyleSheet.create({
   execLeadCountText: {
     fontSize: 12,
     fontWeight: '800',
-    color: Colors.admin,
+    color: theme.admin,
   },
 });

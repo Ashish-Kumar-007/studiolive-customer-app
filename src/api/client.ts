@@ -25,14 +25,19 @@ apiClient.interceptors.response.use(
   (response) => response,
   async (error) => {
     if (error.response?.status === 401) {
-      console.log('[AUTH] Session expired, logging out');
-      try {
-        const { logout } = (await import('../store/authStore')).useAuthStore.getState();
-        await logout();
-      } catch (err) {
-        console.error('Logout during 401 failed', err);
+      // 🚨 Don't trigger logout if we are already on the login page or attempting to login
+      const isLoginRequest = error.config?.url?.includes('/auth/login');
+      
+      if (!isLoginRequest) {
+        console.log('[AUTH] Session expired, logging out');
+        try {
+          const { logout } = (await import('../store/authStore')).useAuthStore.getState();
+          await logout();
+        } catch (err) {
+          console.error('Logout during 401 failed', err);
+        }
+        return new Promise(() => { }); // Silence the error as we're redirecting to login
       }
-      return new Promise(() => { }); // Silence the error as we're redirecting to login
     }
 
     if (error.response?.status === 403) {

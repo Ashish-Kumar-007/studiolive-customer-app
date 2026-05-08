@@ -1,16 +1,17 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Alert, RefreshControl } from 'react-native';
-import { Colors, Spacing, Radius } from '../../../src/constants/theme';
+import { useTheme, Spacing, Radius } from '../../../src/constants/theme';
 import { apiClient } from '../../../src/api/client';
 import { useAuthStore } from '../../../src/store/authStore';
 import { useRouter } from 'expo-router';
-import { CheckCircle2, Clock, PlayCircle, Calendar, ChevronRight } from 'lucide-react-native';
+import { CheckCircle2, Clock, PlayCircle, Calendar, ChevronRight, Edit3, ArrowRightCircle, Plus } from 'lucide-react-native';
 
 interface Task {
   id: string;
   type: 'SHOOT' | 'EDIT';
   status: 'ASSIGNED' | 'IN_PROGRESS' | 'COMPLETED';
   deadline: string;
+  leadId: string;
   lead?: {
     name: string;
     business: string;
@@ -18,6 +19,8 @@ interface Task {
 }
 
 export default function ProductionTasks() {
+  const theme = useTheme();
+  const styles = createStyles(theme);
   const { user, isAuthenticated } = useAuthStore();
   const router = useRouter();
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -35,20 +38,59 @@ export default function ProductionTasks() {
 
     try {
       const endpoint = isAdminOrManager ? '/tasks' : '/tasks/my';
-      const res = await apiClient.get(endpoint, { params: { page: pageNum, limit: 10 } });
+      const res = await apiClient.get(endpoint, { params: { page: pageNum, limit: 100 } }); // Fetch more for deduplication
 
       const resData = res.data;
-      if (resData?.data && resData?.meta) {
-        if (isRefresh || pageNum === 1) {
-          setTasks(resData.data);
-        } else {
-          setTasks(prev => [...prev, ...resData.data]);
-        }
-        setLastPage(resData.meta.lastPage);
+      let rawData = [];
+      if (resData?.data) {
+        rawData = resData.data;
       } else if (Array.isArray(resData)) {
-        setTasks(resData);
-        setLastPage(1);
+        rawData = resData;
       }
+
+      // Priority: IN_PROGRESS > ASSIGNED > COMPLETED
+      const statusOrder: Record<string, number> = { 'IN_PROGRESS': 3, 'ASSIGNED': 2, 'COMPLETED': 1 };
+
+      // Deduplicate: If a lead has both SHOOT and EDIT, show EDIT. 
+      // If a lead has multiple of same type, show latest.
+      const leadMap = new Map<string, Task>();
+      rawData.forEach((t: Task) => {
+        const existing = leadMap.get(t.leadId);
+        if (!existing) {
+          leadMap.set(t.leadId, t);
+        } else {
+          // Priority: EDIT > SHOOT
+          if (t.type === 'EDIT' && existing.type === 'SHOOT') {
+            leadMap.set(t.leadId, t);
+          } else if (t.type === existing.type) {
+            if (statusOrder[t.status] > statusOrder[existing.status]) {
+              leadMap.set(t.leadId, t);
+            }
+          }
+        }
+      });
+
+      const finalTasks = Array.from(leadMap.values()).sort((a, b) => 
+        new Date(b.deadline || 0).getTime() - new Date(a.deadline || 0).getTime()
+      );
+
+      if (isRefresh || pageNum === 1) {
+        setTasks(finalTasks);
+      } else {
+        setTasks(prev => {
+          const combined = [...prev, ...finalTasks];
+          const secondMap = new Map<string, Task>();
+          combined.forEach(ct => {
+             // Re-deduplicate combined list
+             const ex = secondMap.get(ct.leadId);
+             if (!ex || (ct.type === 'EDIT' && ex.type === 'SHOOT') || (ct.type === ex.type && statusOrder[ct.status] > statusOrder[ex.status])) {
+               secondMap.set(ct.leadId, ct);
+             }
+          });
+          return Array.from(secondMap.values());
+        });
+      }
+      setLastPage(resData.meta?.lastPage || 1);
     } catch (error) {
       console.error(error);
     } finally {
@@ -71,32 +113,25 @@ export default function ProductionTasks() {
     }
   };
 
-  const updateStatus = async (taskId: string, currentStatus: string) => {
-    let nextStatus = '';
-    if (currentStatus === 'ASSIGNED') nextStatus = 'IN_PROGRESS';
-    else if (currentStatus === 'IN_PROGRESS') nextStatus = 'COMPLETED';
-    else return;
-
-    try {
-      await apiClient.patch(`/tasks/${taskId}/status`, { status: nextStatus });
-      fetchTasks(1, true);
-    } catch (error: any) {
-      Alert.alert('Error', error.response?.data?.message || 'Failed to update task');
+  const getStatusStyle = (status: string) => {
+    switch (status) {
+      case 'COMPLETED': return { color: theme.success, bg: theme.success + '15' };
+      case 'IN_PROGRESS': return { color: theme.warning, bg: theme.warning + '15' };
+      default: return { color: theme.textDim, bg: theme.surfaceLight };
     }
   };
 
-  const getStatusStyle = (status: string) => {
-    switch (status) {
-      case 'COMPLETED': return { color: Colors.success, bg: Colors.success + '15' };
-      case 'IN_PROGRESS': return { color: Colors.warning, bg: Colors.warning + '15' };
-      default: return { color: Colors.textDim, bg: Colors.surfaceLight };
-    }
+  const handleInitializeEdit = (leadId: string) => {
+    router.push({
+      pathname: '/(app)/manager/assign',
+      params: { leadId, type: 'EDIT' }
+    });
   };
 
   if (loading && tasks.length === 0) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color={Colors.videographer} />
+        <ActivityIndicator size="large" color={theme.manager} />
       </View>
     );
   }
@@ -104,18 +139,19 @@ export default function ProductionTasks() {
   const renderTaskItem = ({ item }: { item: Task }) => {
     const isOverdue = new Date(item.deadline) < new Date() && item.status !== 'COMPLETED';
     const isToday = new Date(item.deadline).toDateString() === new Date().toDateString();
+    const canAssignEdit = isAdminOrManager && item.type === 'SHOOT' && item.status === 'COMPLETED';
 
     return (
-      <TouchableOpacity 
-        style={[styles.taskCard, isOverdue && styles.overdueCard]}
-        onPress={() => router.push(`/(app)/tasks/${item.id}`)}
-        activeOpacity={0.8}
-      >
-        <View style={styles.cardMain}>
+      <View style={[styles.taskCard, isOverdue && styles.overdueCard]}>
+        <TouchableOpacity 
+          style={styles.cardMain}
+          onPress={() => router.push(`/(app)/tasks/${item.id}`)}
+          activeOpacity={0.8}
+        >
           <View style={styles.cardHeader}>
             <View style={styles.typeTag}>
-              <PlayCircle size={12} color={item.type === 'SHOOT' ? Colors.videographer : Colors.editor} />
-              <Text style={[styles.typeTagText, { color: item.type === 'SHOOT' ? Colors.videographer : Colors.editor }]}>{item.type}</Text>
+              <PlayCircle size={12} color={item.type === 'SHOOT' ? theme.videographer : theme.editor} />
+              <Text style={[styles.typeTagText, { color: item.type === 'SHOOT' ? theme.videographer : theme.editor }]}>{item.type}</Text>
             </View>
             <View style={[styles.statusBadge, { backgroundColor: getStatusStyle(item.status).bg }]}>
               <Text style={[styles.statusBadgeText, { color: getStatusStyle(item.status).color }]}>{item.status}</Text>
@@ -127,35 +163,75 @@ export default function ProductionTasks() {
 
           <View style={styles.cardFooter}>
             <View style={styles.metaInfo}>
-              <Clock size={12} color={isOverdue ? Colors.error : Colors.textDark} />
-              <Text style={[styles.metaText, isOverdue && { color: Colors.error }]}>
-                {new Date(item.deadline).toLocaleDateString()}
+              <Clock size={12} color={isOverdue ? theme.error : theme.textDark} />
+              <Text style={[styles.metaText, isOverdue && { color: theme.error }]}>
+                {new Date(item.deadline).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
               </Text>
             </View>
             {isToday && <View style={styles.todayFlag}><Text style={styles.todayFlagText}>DUE TODAY</Text></View>}
           </View>
-        </View>
-        <View style={styles.chevron}>
-          <ChevronRight size={20} color={Colors.border} />
-        </View>
-      </TouchableOpacity>
+        </TouchableOpacity>
+
+        {canAssignEdit ? (
+          <TouchableOpacity 
+            style={styles.actionSection}
+            onPress={() => handleInitializeEdit(item.leadId)}
+            activeOpacity={0.7}
+          >
+            <View style={styles.actionDivider} />
+            <View style={styles.actionContent}>
+              <View style={styles.actionIconBox}>
+                <Edit3 size={16} color={theme.info} />
+              </View>
+              <Text style={styles.actionText}>INITIATE EDITING PHASE</Text>
+              <ArrowRightCircle size={18} color={theme.info} />
+            </View>
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity 
+            style={styles.chevron}
+            onPress={() => router.push(`/(app)/tasks/${item.id}`)}
+          >
+            <ChevronRight size={20} color={theme.border} />
+          </TouchableOpacity>
+        )}
+      </View>
     );
   };
 
   return (
     <View style={styles.container}>
+      <View style={styles.pageHeader}>
+        <View>
+          <Text style={styles.pageTitle}>{isAdminOrManager ? 'Production Pipeline' : 'My Assignments'}</Text>
+          <Text style={styles.pageSubtitle}>Monitor workflow status and progression</Text>
+        </View>
+        {isAdminOrManager && (
+          <TouchableOpacity 
+            style={styles.headerAction}
+            onPress={() => router.push('/(app)/manager/assign')}
+          >
+            <Plus size={20} color="#fff" />
+          </TouchableOpacity>
+        )}
+      </View>
+
       <FlatList
         data={tasks}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={() => fetchTasks(1, true)} />
+          <RefreshControl refreshing={refreshing} onRefresh={() => fetchTasks(1, true)} tintColor={theme.manager} />
         }
         onEndReached={loadMore}
         onEndReachedThreshold={0.5}
         ListEmptyComponent={
           <View style={styles.empty}>
-            <Text style={styles.emptyText}>No tasks assigned to you.</Text>
+            <Text style={styles.emptyText}>
+              {user?.role === 'VIDEOGRAPHER' ? 'No shoot tasks assigned.' : 
+               user?.role === 'EDITOR' ? 'No edit tasks assigned.' : 
+               'No active tasks in the pipeline.'}
+            </Text>
           </View>
         }
         renderItem={renderTaskItem}
@@ -164,30 +240,56 @@ export default function ProductionTasks() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.background },
-  list: { padding: Spacing.lg },
+const createStyles = (theme: any) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: theme.background },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: theme.background },
+  pageHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: Spacing.xl,
+    paddingTop: 20,
+    backgroundColor: theme.background,
+  },
+  pageTitle: {
+    fontSize: 28,
+    fontWeight: '900',
+    color: theme.text,
+    letterSpacing: -0.5,
+  },
+  pageSubtitle: {
+    fontSize: 13,
+    color: theme.textDim,
+    marginTop: 2,
+    fontWeight: '500',
+  },
+  headerAction: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: theme.videographer,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: theme.videographer,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  list: { padding: Spacing.lg, paddingTop: 0 },
   taskCard: {
-    backgroundColor: Colors.surface,
+    backgroundColor: theme.surface,
     borderRadius: Radius.xxl,
     marginBottom: Spacing.md,
-    flexDirection: 'row',
-    alignItems: 'center',
     borderWidth: 1,
-    borderColor: Colors.border,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-    elevation: 2,
+    borderColor: theme.border,
+    overflow: 'hidden',
   },
   overdueCard: {
-    borderColor: Colors.error + '40',
-    backgroundColor: Colors.error + '05',
+    borderColor: theme.error + '40',
+    backgroundColor: theme.error + '05',
   },
   cardMain: {
-    flex: 1,
     padding: Spacing.lg,
   },
   cardHeader: {
@@ -200,7 +302,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: Colors.background,
+    backgroundColor: 'rgba(255,255,255,0.03)',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: Radius.sm,
@@ -221,13 +323,13 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
   clientName: {
-    color: Colors.text,
+    color: theme.text,
     fontSize: 18,
     fontWeight: '800',
     marginBottom: 4,
   },
   businessName: {
-    color: Colors.textDim,
+    color: theme.textDim,
     fontSize: 13,
     marginBottom: 12,
   },
@@ -242,24 +344,56 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   metaText: {
-    color: Colors.textDark,
+    color: theme.textDark,
     fontSize: 12,
     fontWeight: '600',
   },
   todayFlag: {
-    backgroundColor: Colors.error + '15',
+    backgroundColor: theme.error + '15',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: Radius.sm,
   },
   todayFlagText: {
-    color: Colors.error,
+    color: theme.error,
     fontSize: 8,
     fontWeight: '900',
     letterSpacing: 0.5,
   },
+  actionSection: {
+    backgroundColor: theme.info + '10',
+  },
+  actionDivider: {
+    height: 1,
+    backgroundColor: theme.border,
+    opacity: 0.5,
+  },
+  actionContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: Spacing.md,
+    gap: 12,
+  },
+  actionIconBox: {
+    width: 32,
+    height: 32,
+    borderRadius: Radius.md,
+    backgroundColor: theme.info + '15',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  actionText: {
+    flex: 1,
+    fontSize: 11,
+    fontWeight: '900',
+    color: theme.info,
+    letterSpacing: 1,
+  },
   chevron: {
-    paddingRight: Spacing.md,
+    position: 'absolute',
+    right: 15,
+    top: '50%',
+    marginTop: -10,
   },
   empty: { 
     paddingVertical: 120, 
@@ -267,8 +401,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   emptyText: { 
-    color: Colors.textDark,
-    fontSize: 16,
+    color: theme.textDark,
+    fontSize: 14,
     fontWeight: '600',
     opacity: 0.7,
   },

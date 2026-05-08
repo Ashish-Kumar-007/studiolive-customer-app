@@ -1,30 +1,35 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, RefreshControl, Dimensions, TouchableOpacity } from 'react-native';
-import { Colors, Spacing, Radius } from '../../../src/constants/theme';
+import { View, Text, StyleSheet, ScrollView, RefreshControl, Dimensions, TouchableOpacity, ActivityIndicator, Platform } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useTheme, Spacing, Radius } from '../../../src/constants/theme';
 import { useAuthStore } from '../../../src/store/authStore';
 import { apiClient } from '../../../src/api/client';
 import { 
   CircleDollarSign, 
-  TrendingUp, 
   Users, 
   Target,
-  BarChart3,
-  PieChart as PieChartIcon
+  Trophy,
+  Activity,
+  ChevronRight,
+  TrendingUp,
+  ArrowRight,
+  Filter,
+  BarChart2,
+  Gem
 } from 'lucide-react-native';
+
+const { width } = Dimensions.get('window');
 
 interface FinanceData {
   earned: number;
   pipeline: number;
+  booked: number;
   totalPotential: number;
 }
 
-interface StaffPerformance {
-  name: string;
-  leads: number;
-  conversions: number;
-}
-
 export default function Reporting() {
+  const theme = useTheme();
+  const styles = createStyles(theme);
   const { user, isAuthenticated } = useAuthStore();
   const [summary, setSummary] = useState<any>(null);
   const [finance, setFinance] = useState<FinanceData | null>(null);
@@ -32,26 +37,22 @@ export default function Reporting() {
   const [staffStats, setStaffStats] = useState<any>(null);
   const [selectedStaffId, setSelectedStaffId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [staffLoading, setStaffLoading] = useState(false);
 
   const fetchReports = async () => {
     setLoading(true);
     const isAdminOrManager = user?.role === 'ADMIN' || user?.role === 'MANAGER';
 
     try {
-      const [sumRes, leadRes] = await Promise.all([
+      const [sumRes, leadRes, finRes] = await Promise.all([
         apiClient.get('/reporting/summary'),
-        isAdminOrManager ? apiClient.get('/reporting/leaderboard') : Promise.resolve({ data: [] })
+        isAdminOrManager ? apiClient.get('/reporting/leaderboard') : Promise.resolve({ data: [] }),
+        isAdminOrManager ? apiClient.get('/reporting/finance') : Promise.resolve({ data: null })
       ]);
       
       setSummary(sumRes.data);
       setLeaderboard(leadRes.data);
-
-      if (isAdminOrManager) {
-        try {
-          const finRes = await apiClient.get('/reporting/finance');
-          setFinance(finRes.data);
-        } catch (e) {}
-      }
+      setFinance(finRes.data);
     } catch (error: any) {
       console.error('Failed to fetch reports', error);
     } finally {
@@ -67,8 +68,11 @@ export default function Reporting() {
   if (user?.role !== 'ADMIN' && user?.role !== 'MANAGER') {
     return (
       <View style={styles.deniedState}>
-        <Text style={styles.deniedTitle}>Access Restricted</Text>
-        <Text style={styles.deniedText}>Reporting is available only for Admin and Manager roles.</Text>
+        <LinearGradient colors={[theme.error + '20', theme.background]} style={styles.deniedBg}>
+          <Target size={48} color={theme.error} />
+          <Text style={styles.deniedTitle}>Admin Access Required</Text>
+          <Text style={styles.deniedText}>The reporting suite is reserved for organizational leads and managers.</Text>
+        </LinearGradient>
       </View>
     );
   }
@@ -80,371 +84,471 @@ export default function Reporting() {
       return;
     }
     setSelectedStaffId(id);
+    setStaffLoading(true);
     try {
       const res = await apiClient.get(`/reporting/staff/${id}/stats`);
       setStaffStats(res.data);
-    } catch (_) {}
+    } catch (_) {
+    } finally {
+      setStaffLoading(false);
+    }
   };
 
-  const renderFinanceCard = () => {
+  const renderFinancialPulse = () => {
     if (!finance) return null;
-    const earnedPercent = (finance.earned / (finance.totalPotential || 1)) * 100;
+    const total = finance.totalPotential || 1;
+    const earnedPct = (finance.earned / total) * 100;
 
     return (
-      <View style={styles.card}>
-        <View style={styles.cardHeader}>
-          <CircleDollarSign color={Colors.success} size={24} />
-          <Text style={styles.cardTitle}>Financial Pipeline</Text>
-        </View>
-        
-        <View style={styles.revenueGrid}>
-          <View style={styles.revenueItem}>
-            <Text style={styles.revenueLabel}>Earned</Text>
-            <Text style={[styles.revenueValue, { color: Colors.success }]}>₹{finance.earned.toLocaleString()}</Text>
+      <View style={styles.section}>
+        <Text style={styles.sectionHeading}>Revenue Command Center</Text>
+        <LinearGradient
+          colors={['#1E1B4B', '#312E81']}
+          style={styles.heroCard}
+        >
+          <View style={styles.heroTop}>
+            <View>
+              <Text style={styles.heroLabel}>TOTAL POTENTIAL VALUE</Text>
+              <Text style={styles.heroValue}>₹{finance.totalPotential.toLocaleString()}</Text>
+            </View>
+            <View style={styles.heroIconCircle}>
+              <Gem size={20} color="#fff" />
+            </View>
           </View>
-          <View style={styles.revenueItem}>
-            <Text style={styles.revenueLabel}>Pipeline</Text>
-            <Text style={[styles.revenueValue, { color: Colors.warning }]}>₹{finance.pipeline.toLocaleString()}</Text>
-          </View>
-        </View>
 
-        <View style={styles.progressContainer}>
-          <View style={styles.progressBarBg}>
-            <View style={[styles.progressBarFill, { width: `${earnedPercent}%`, backgroundColor: Colors.success }]} />
+          <View style={styles.financeMetrics}>
+            <View style={styles.metricItem}>
+              <Text style={styles.metricLabel}>BOOKED</Text>
+              <Text style={styles.metricValue}>₹{finance.booked.toLocaleString()}</Text>
+              <View style={[styles.metricDot, { backgroundColor: theme.warning }]} />
+            </View>
+            <View style={styles.metricDivider} />
+            <View style={styles.metricItem}>
+              <Text style={styles.metricLabel}>PIPELINE</Text>
+              <Text style={styles.metricValue}>₹{finance.pipeline.toLocaleString()}</Text>
+              <View style={[styles.metricDot, { backgroundColor: theme.info }]} />
+            </View>
+            <View style={styles.metricDivider} />
+            <View style={styles.metricItem}>
+              <Text style={styles.metricLabel}>EARNED</Text>
+              <Text style={[styles.metricValue, { color: theme.success }]}>₹{finance.earned.toLocaleString()}</Text>
+              <View style={[styles.metricDot, { backgroundColor: theme.success }]} />
+            </View>
           </View>
-          <Text style={styles.progressLabel}>
-            {earnedPercent.toFixed(0)}% of total potential revenue (₹{finance.totalPotential.toLocaleString()}) secured.
-          </Text>
+
+          <View style={styles.progressTrack}>
+            <View style={styles.progressTrackLabels}>
+              <Text style={styles.trackText}>Secured Revenue</Text>
+              <Text style={styles.trackPct}>{earnedPct.toFixed(0)}%</Text>
+            </View>
+            <View style={styles.progressBg}>
+              <View style={[styles.progressFill, { width: `${earnedPct}%` }]} />
+            </View>
+          </View>
+        </LinearGradient>
+      </View>
+    );
+  };
+
+  const renderFunnel = () => {
+    if (!summary) return null;
+    return (
+      <View style={styles.section}>
+        <Text style={styles.sectionHeading}>Conversion Funnel</Text>
+        <View style={styles.funnelCard}>
+          <View style={styles.funnelRow}>
+            <View style={[styles.funnelBar, { width: '100%', backgroundColor: theme.marketing + '20' }]}>
+              <Text style={[styles.funnelText, { color: theme.text }]}>{summary.totalLeads} Total Sourced</Text>
+            </View>
+            <ArrowRight size={14} color={theme.textDim} />
+          </View>
+          <View style={styles.funnelRow}>
+            <View style={[styles.funnelBar, { width: '80%', backgroundColor: theme.warning + '20' }]}>
+              <Text style={[styles.funnelText, { color: theme.text }]}>{summary.pendingQualification} Pending Qual.</Text>
+            </View>
+            <ArrowRight size={14} color={theme.textDim} />
+          </View>
+          <View style={styles.funnelRow}>
+            <View style={[styles.funnelBar, { width: '60%', backgroundColor: theme.success + '20' }]}>
+              <Text style={[styles.funnelText, { color: theme.success }]}>{summary.completedTasks} Completed Projects</Text>
+            </View>
+          </View>
         </View>
       </View>
     );
   };
 
   return (
-    <ScrollView 
-      style={styles.container}
-      refreshControl={<RefreshControl refreshing={loading} onRefresh={fetchReports} />}
-    >
-      <View style={styles.padding}>
-        {summary && (
-          <View style={styles.summaryGrid}>
-            <View style={styles.summaryCard}>
-              <Text style={styles.summaryValue}>{summary.totalLeads || 0}</Text>
-              <Text style={styles.summaryLabel}>Total Leads</Text>
-            </View>
-            <View style={styles.summaryCard}>
-              <Text style={styles.summaryValue}>{summary.completedTasks || 0}</Text>
-              <Text style={styles.summaryLabel}>Tasks Done</Text>
-            </View>
+    <View style={styles.container}>
+      <ScrollView 
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+        refreshControl={<RefreshControl refreshing={loading} onRefresh={fetchReports} tintColor={theme.admin} />}
+      >
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>Operations Intelligence</Text>
+          <Text style={styles.headerSub}>Enterprise Performance Tracking</Text>
+        </View>
+
+        {renderFinancialPulse()}
+        {renderFunnel()}
+
+        <View style={styles.section}>
+          <View style={styles.staffHeader}>
+            <Text style={styles.sectionHeading}>Elite Performers</Text>
+            <Trophy size={18} color="#F59E0B" />
           </View>
-        )}
 
-        {renderFinanceCard()}
-
-        {(user?.role === 'ADMIN' || user?.role === 'MANAGER') && (
-          <>
-            <View style={styles.sectionHeader}>
-              <BarChart3 color={Colors.text} size={20} />
-              <Text style={styles.sectionTitle}>Marketing Leaderboard</Text>
-            </View>
-
-            {leaderboard.length === 0 ? (
-              <View style={styles.emptyCard}>
-                <Text style={styles.emptyText}>No data available yet.</Text>
-              </View>
-            ) : (
-              leaderboard.map((staff, index) => (
-                <View key={staff.id || index}>
-                  <TouchableOpacity 
-                    style={[styles.staffCard, selectedStaffId === staff.id && styles.staffCardActive]}
-                    onPress={() => viewStaffStats(staff.id)}
-                  >
-                    <View style={styles.staffRank}>
-                      <Text style={styles.rankText}>#{index + 1}</Text>
+          {leaderboard.map((staff, index) => (
+            <View key={staff.id} style={styles.staffItem}>
+              <TouchableOpacity 
+                onPress={() => viewStaffStats(staff.id)}
+                activeOpacity={0.7}
+                style={[styles.staffCore, selectedStaffId === staff.id && styles.staffCoreActive]}
+              >
+                <View style={[styles.staffRank, index === 0 && styles.staffRankGold]}>
+                  <Text style={[styles.staffRankText, index === 0 && { color: '#fff' }]}>{index + 1}</Text>
+                </View>
+                <View style={styles.staffInfo}>
+                  <Text style={styles.staffName}>{staff.name}</Text>
+                  <View style={styles.staffBadges}>
+                    <View style={styles.miniBadge}>
+                      <Text style={styles.miniBadgeText}>{staff.leadsCount} LEADS</Text>
                     </View>
-                    <View style={styles.staffInfo}>
-                      <Text style={styles.staffName}>{staff.name}</Text>
-                      <Text style={styles.staffStatText}>{staff.leadsCount} Total Leads</Text>
-                    </View>
-                    <View style={styles.staffRate}>
-                      <Text style={styles.rateValue}>{staff.conversionRate}%</Text>
-                      <Text style={styles.rateLabel}>Rate</Text>
-                    </View>
-                  </TouchableOpacity>
+                  </View>
+                </View>
+                <View style={styles.staffAction}>
+                  <Text style={styles.staffActionValue}>{staff.conversions}</Text>
+                  <Text style={styles.staffActionLabel}>WINS</Text>
+                </View>
+                <ChevronRight size={16} color={theme.border} />
+              </TouchableOpacity>
 
-                  {selectedStaffId === staff.id && staffStats && (
-                    <View style={styles.staffDetailCard}>
-                      <View style={styles.detailGrid}>
-                        <View style={styles.detailItem}>
-                          <Text style={styles.detailVal}>{staffStats.convincedLeads}</Text>
-                          <Text style={styles.detailLab}>Convinced</Text>
-                        </View>
-                        <View style={styles.detailItem}>
-                          <Text style={styles.detailVal}>{staffStats.archivedLeads}</Text>
-                          <Text style={styles.detailLab}>Archived</Text>
-                        </View>
-                        <View style={styles.detailItem}>
-                          <Text style={[styles.detailVal, { color: Colors.success }]}>₹{staffStats.revenueGenerated?.toLocaleString() || 0}</Text>
-                          <Text style={styles.detailLab}>Revenue</Text>
-                        </View>
+              {selectedStaffId === staff.id && (
+                <View style={styles.staffDropdown}>
+                  {staffLoading ? (
+                    <ActivityIndicator size="small" color={theme.admin} />
+                  ) : staffStats && (
+                    <View style={styles.dropdownGrid}>
+                      <View style={styles.dropdownBox}>
+                        <Activity size={16} color={theme.admin} />
+                        <Text style={styles.dropdownValue}>{staffStats.totalLeads}</Text>
+                        <Text style={styles.dropdownLabel}>Capture</Text>
+                      </View>
+                      <View style={styles.dropdownBox}>
+                        <TrendingUp size={16} color={theme.success} />
+                        <Text style={styles.dropdownValue}>
+                          {((staffStats.conversions / (staffStats.totalLeads || 1)) * 100).toFixed(0)}%
+                        </Text>
+                        <Text style={styles.dropdownLabel}>Success Rate</Text>
                       </View>
                     </View>
                   )}
                 </View>
-              ))
-            )}
-          </>
-        )}
-      </View>
-    </ScrollView>
+              )}
+            </View>
+          ))}
+        </View>
+      </ScrollView>
+    </View>
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: theme.background,
   },
-  padding: {
+  scrollContent: {
     padding: Spacing.lg,
+    paddingBottom: 60,
   },
-  summaryGrid: {
-    flexDirection: 'row',
-    gap: Spacing.md,
+  header: {
     marginBottom: Spacing.xl,
+    paddingHorizontal: 4,
   },
-  summaryCard: {
-    flex: 1,
-    backgroundColor: Colors.surface,
-    padding: Spacing.lg,
-    borderRadius: Radius.lg,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    alignItems: 'center',
+  headerTitle: {
+    fontSize: 28,
+    fontWeight: '900',
+    color: theme.text,
+    letterSpacing: -1,
   },
-  summaryValue: {
-    color: Colors.text,
-    fontSize: 24,
-    fontWeight: 'bold',
-  },
-  summaryLabel: {
-    color: Colors.textDim,
-    fontSize: 12,
+  headerSub: {
+    fontSize: 14,
+    color: theme.textDim,
+    fontWeight: '600',
     marginTop: 4,
   },
-  card: {
-    backgroundColor: Colors.surface,
+  section: {
+    marginBottom: Spacing.xxl,
+  },
+  sectionHeading: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: theme.textDim,
+    textTransform: 'uppercase',
+    letterSpacing: 1.5,
+    marginBottom: Spacing.md,
+    marginLeft: 4,
+  },
+  heroCard: {
+    borderRadius: Radius.xxxl,
     padding: Spacing.xl,
-    borderRadius: Radius.lg,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    marginBottom: Spacing.xl,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.2,
+    shadowRadius: 20,
+    elevation: 10,
   },
-  cardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    marginBottom: Spacing.xl,
-  },
-  cardTitle: {
-    color: Colors.text,
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  revenueGrid: {
-    flexDirection: 'row',
-    gap: Spacing.xl,
-    marginBottom: Spacing.xl,
-  },
-  revenueItem: {
-    flex: 1,
-  },
-  revenueLabel: {
-    color: Colors.textDim,
-    fontSize: 12,
-    marginBottom: 4,
-  },
-  revenueValue: {
-    fontSize: 20,
-    fontWeight: 'bold',
-  },
-  totalPotential: {
-    backgroundColor: Colors.background,
-    padding: Spacing.md,
-    borderRadius: Radius.md,
-    marginBottom: Spacing.xl,
+  heroTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: Spacing.xl,
+  },
+  heroLabel: {
+    color: 'rgba(255,255,255,0.6)',
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 1,
+  },
+  heroValue: {
+    color: '#fff',
+    fontSize: 32,
+    fontWeight: '900',
+    marginTop: 4,
+  },
+  heroIconCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    justifyContent: 'center',
     alignItems: 'center',
   },
-  potentialLabel: {
-    color: Colors.text,
+  financeMetrics: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: Spacing.xl,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    padding: Spacing.md,
+    borderRadius: Radius.xxl,
+  },
+  metricItem: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  metricDivider: {
+    width: 1,
+    height: 24,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+  },
+  metricLabel: {
+    color: 'rgba(255,255,255,0.5)',
+    fontSize: 9,
+    fontWeight: '800',
+    marginBottom: 4,
+  },
+  metricValue: {
+    color: '#fff',
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: '800',
+    marginBottom: 6,
   },
-  potentialValue: {
-    color: Colors.text,
-    fontSize: 18,
-    fontWeight: 'bold',
+  metricDot: {
+    width: 12,
+    height: 2,
+    borderRadius: 1,
   },
-  progressContainer: {},
-  progressHeader: {
+  progressTrack: {
+    marginTop: Spacing.sm,
+  },
+  progressTrackLabels: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginBottom: 8,
   },
-  progressLabel: {
-    color: Colors.textDim,
+  trackText: {
+    color: 'rgba(255,255,255,0.6)',
     fontSize: 12,
+    fontWeight: '600',
   },
-  progressPercent: {
-    color: Colors.success,
+  trackPct: {
+    color: theme.success,
     fontSize: 12,
-    fontWeight: 'bold',
+    fontWeight: '800',
   },
-  progressBarBg: {
-    height: 8,
-    backgroundColor: Colors.border,
-    borderRadius: 4,
+  progressBg: {
+    height: 6,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 3,
     overflow: 'hidden',
   },
-  progressBarFill: {
+  progressFill: {
     height: '100%',
-    backgroundColor: Colors.success,
+    backgroundColor: theme.success,
   },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    marginBottom: Spacing.lg,
-  },
-  sectionTitle: {
-    color: Colors.text,
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  staffCard: {
-    backgroundColor: Colors.surface,
-    padding: Spacing.lg,
-    borderRadius: Radius.md,
+  funnelCard: {
+    backgroundColor: theme.surface,
+    padding: Spacing.xl,
+    borderRadius: Radius.xxxl,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: theme.border,
+  },
+  funnelRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: Spacing.xs,
+    gap: 12,
+    marginBottom: 8,
   },
-  staffCardActive: {
-    borderColor: Colors.admin,
-    backgroundColor: Colors.admin + '08',
+  funnelBar: {
+    padding: 12,
+    borderRadius: Radius.lg,
+  },
+  funnelText: {
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  staffHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: Spacing.md,
+    paddingRight: 8,
+  },
+  staffItem: {
+    marginBottom: Spacing.sm,
+  },
+  staffCore: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.surface,
+    padding: Spacing.lg,
+    borderRadius: Radius.xxl,
+    borderWidth: 1,
+    borderColor: theme.border,
+  },
+  staffCoreActive: {
+    borderColor: theme.admin,
     borderBottomLeftRadius: 0,
     borderBottomRightRadius: 0,
-    marginBottom: 0,
   },
   staffRank: {
-    width: 40,
-    alignItems: 'center',
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: theme.background,
     justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
   },
-  rankText: {
-    color: Colors.admin,
-    fontSize: 16,
-    fontWeight: 'bold',
+  staffRankGold: {
+    backgroundColor: '#F59E0B',
+  },
+  staffRankText: {
+    fontSize: 13,
+    fontWeight: '900',
+    color: theme.textDark,
   },
   staffInfo: {
     flex: 1,
-    paddingLeft: Spacing.md,
   },
   staffName: {
-    color: Colors.text,
     fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 4,
+    fontWeight: '800',
+    color: theme.text,
   },
-  staffStats: {
+  staffBadges: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  staffStatText: {
-    color: Colors.textDim,
-    fontSize: 12,
-  },
-  staffStatDivider: {
-    color: Colors.textDark,
-  },
-  staffRate: {
-    alignItems: 'center',
-    paddingLeft: Spacing.lg,
-    borderLeftWidth: 1,
-    borderLeftColor: Colors.border,
-  },
-  rateValue: {
-    color: Colors.manager,
-    fontSize: 20,
-    fontWeight: 'bold',
-  },
-  rateLabel: {
-    color: Colors.textDim,
-    fontSize: 10,
-    textTransform: 'uppercase',
-  },
-  staffDetailCard: {
-    backgroundColor: Colors.background,
-    padding: Spacing.md,
-    borderWidth: 1,
-    borderTopWidth: 0,
-    borderColor: Colors.admin,
-    borderBottomLeftRadius: Radius.md,
-    borderBottomRightRadius: Radius.md,
-    marginBottom: Spacing.sm,
-  },
-  detailGrid: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  detailItem: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  detailVal: {
-    color: Colors.text,
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  detailLab: {
-    color: Colors.textDark,
-    fontSize: 9,
-    textTransform: 'uppercase',
     marginTop: 2,
   },
-  emptyCard: {
-    backgroundColor: Colors.surface,
-    padding: Spacing.xxl,
-    borderRadius: Radius.md,
+  miniBadge: {
+    backgroundColor: theme.background,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
     borderWidth: 1,
-    borderColor: Colors.border,
-    alignItems: 'center',
-    borderStyle: 'dashed',
+    borderColor: theme.border,
   },
-  emptyText: {
-    color: Colors.textDark,
-    fontSize: 14,
+  miniBadgeText: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: theme.textDim,
+  },
+  staffAction: {
+    alignItems: 'flex-end',
+    marginRight: 12,
+  },
+  staffActionValue: {
+    fontSize: 20,
+    fontWeight: '900',
+    color: theme.admin,
+  },
+  staffActionLabel: {
+    fontSize: 8,
+    fontWeight: '800',
+    color: theme.textDim,
+    textTransform: 'uppercase',
+  },
+  staffDropdown: {
+    backgroundColor: theme.background,
+    borderWidth: 1,
+    borderTopWidth: 0,
+    borderColor: theme.admin,
+    borderBottomLeftRadius: Radius.xxl,
+    borderBottomRightRadius: Radius.xxl,
+    padding: Spacing.md,
+  },
+  dropdownGrid: {
+    flexDirection: 'row',
+    gap: Spacing.md,
+  },
+  dropdownBox: {
+    flex: 1,
+    backgroundColor: theme.surface,
+    padding: Spacing.md,
+    borderRadius: Radius.xl,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: theme.border,
+    gap: 4,
+  },
+  dropdownValue: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: theme.text,
+  },
+  dropdownLabel: {
+    fontSize: 9,
+    color: theme.textDim,
+    fontWeight: '700',
+    textTransform: 'uppercase',
   },
   deniedState: {
     flex: 1,
-    backgroundColor: Colors.background,
     justifyContent: 'center',
+    padding: Spacing.xxl,
+    backgroundColor: theme.background,
+  },
+  deniedBg: {
+    padding: Spacing.xxl,
+    borderRadius: Radius.xxxl,
     alignItems: 'center',
-    padding: Spacing.xl,
+    borderWidth: 1,
+    borderColor: theme.error + '20',
   },
   deniedTitle: {
-    color: Colors.text,
-    fontSize: 22,
-    fontWeight: '700',
-    marginBottom: Spacing.sm,
-  },
-  deniedText: {
-    color: Colors.textDim,
+    fontSize: 24,
+    fontWeight: '900',
+    color: theme.text,
+    marginTop: Spacing.lg,
     textAlign: 'center',
   },
+  deniedText: {
+    fontSize: 16,
+    color: theme.textDim,
+    textAlign: 'center',
+    marginTop: Spacing.md,
+    lineHeight: 24,
+  }
 });

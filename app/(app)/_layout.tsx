@@ -1,21 +1,22 @@
 import { Tabs } from 'expo-router';
-import { Colors } from '../../src/constants/theme';
+import { useTheme } from '../../src/constants/theme';
 import { useAuthStore } from '../../src/store/authStore';
-import { LayoutDashboard, Users, UserPlus, ClipboardList, CheckCircle2, CircleDollarSign, Target, User } from 'lucide-react-native';
+import { LayoutDashboard, UserPlus, ClipboardList, CheckCircle2, CircleDollarSign, Target, User } from 'lucide-react-native';
 import { NotificationBell } from '../../src/components/NotificationBell';
 
 export default function AppLayout() {
+  const theme = useTheme();
   const { user } = useAuthStore();
   const role = user?.role;
 
   const activeTint =
     role === 'MARKETING'
-      ? Colors.marketing
+      ? theme.marketing
       : role === 'RECEPTIONIST'
-        ? Colors.receptionist
+        ? theme.receptionist
         : role === 'VIDEOGRAPHER' || role === 'EDITOR'
-          ? Colors.videographer
-          : Colors.manager;
+          ? theme.videographer
+          : theme.manager;
 
   return (
     <Tabs
@@ -24,19 +25,20 @@ export default function AppLayout() {
         headerTitle: '',
         headerShadowVisible: false,
         headerStyle: {
-          backgroundColor: Colors.background,
+          backgroundColor: theme.background,
         },
+        headerTintColor: theme.text,
         headerRight: () => <NotificationBell />,
         tabBarStyle: {
-          backgroundColor: Colors.surface,
-          borderTopColor: Colors.border,
+          backgroundColor: theme.surface,
+          borderTopColor: theme.border,
           height: 65,
           paddingBottom: 10,
           paddingTop: 8,
           borderTopWidth: 1,
         },
         tabBarActiveTintColor: activeTint,
-        tabBarInactiveTintColor: Colors.textDark,
+        tabBarInactiveTintColor: theme.textDark,
         tabBarLabelStyle: {
           fontSize: 10,
           fontWeight: '700',
@@ -100,14 +102,11 @@ export default function AppLayout() {
         }}
       />
 
-      {/* Admin & Manager Only */}
+      {/* Admin & Manager Only - Hidden from navbar, accessible from Dashboard */}
       <Tabs.Screen
         name="team/index"
         options={{
-          title: 'Team',
-          headerTitle: 'TEAM MANAGEMENT',
-          tabBarIcon: ({ color, size }) => <Users color={color} size={size} />,
-          href: role === 'ADMIN' || role === 'MANAGER' ? '/team' : null,
+          href: null,
         }}
       />
 
@@ -128,7 +127,7 @@ export default function AppLayout() {
           title: 'Tasks',
           headerTitle: 'PRODUCTION TASKS',
           tabBarIcon: ({ color, size }) => <CheckCircle2 color={color} size={size} />,
-          href: role === 'VIDEOGRAPHER' || role === 'EDITOR' ? '/tasks' : null,
+          href: role === 'VIDEOGRAPHER' || role === 'EDITOR' || role === 'ADMIN' || role === 'MANAGER' ? '/tasks' : null,
         }}
       />
 
@@ -150,6 +149,7 @@ export default function AppLayout() {
       <Tabs.Screen name="notifications/index" options={{ href: null }} />
       <Tabs.Screen name="settings" options={{ href: null }} />
       <Tabs.Screen name="manager/assign" options={{ href: null }} />
+      <Tabs.Screen name="manager/targets" options={{ href: null }} />
       <Tabs.Screen name="marketing/leads" options={{ href: null }} />
     </Tabs>
   );

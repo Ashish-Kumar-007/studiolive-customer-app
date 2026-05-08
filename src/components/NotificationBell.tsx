@@ -3,10 +3,12 @@ import { TouchableOpacity, View, Text, StyleSheet } from 'react-native';
 import { Bell } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { apiClient } from '../api/client';
-import { Colors } from '../constants/theme';
+import { useTheme } from '../constants/theme';
 import { useAuthStore } from '../store/authStore';
 
 export function NotificationBell() {
+  const theme = useTheme();
+  const styles = createStyles(theme);
   const [unreadCount, setUnreadCount] = useState(0);
   const { isAuthenticated } = useAuthStore();
   const router = useRouter();
@@ -34,7 +36,7 @@ export function NotificationBell() {
       style={styles.container}
       onPress={() => router.push('/(app)/notifications')}
     >
-      <Bell size={22} color={Colors.text} />
+      <Bell size={22} color={theme.text} />
       {unreadCount > 0 && (
         <View style={styles.badge}>
           <Text style={styles.badgeText}>
@@ -46,7 +48,7 @@ export function NotificationBell() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: any) => StyleSheet.create({
   container: {
     padding: 8,
     position: 'relative',
@@ -55,7 +57,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 2,
     right: 2,
-    backgroundColor: '#EF4444',
+    backgroundColor: theme.error,
     borderRadius: 10,
     minWidth: 18,
     height: 18,

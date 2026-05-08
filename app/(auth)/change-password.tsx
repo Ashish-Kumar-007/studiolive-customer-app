@@ -1,13 +1,16 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, Alert } from 'react-native';
+import { View, Text, StyleSheet, Alert, TouchableOpacity, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Lock } from 'lucide-react-native';
-import { Colors, Radius, Spacing } from '../../src/constants/theme';
+import { Lock, ShieldCheck } from 'lucide-react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useTheme, Radius, Spacing } from '../../src/constants/theme';
 import { apiClient } from '../../src/api/client';
 import { useAuthStore } from '../../src/store/authStore';
-import Button from '../../src/components/AppButton';
+import { Input } from '../../src/components/Input';
 
 export default function ChangePasswordScreen() {
+  const theme = useTheme();
+  const styles = createStyles(theme);
   const { user, token, setAuth } = useAuthStore();
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -26,12 +29,12 @@ export default function ChangePasswordScreen() {
 
     setSubmitting(true);
     try {
-      await apiClient.patch('/auth/change-password', { password });
+      await apiClient.patch('/auth/change-password', { newPassword: password });
       if (user && token) {
         await setAuth({ ...user, isFirstLogin: false }, token);
       }
       Alert.alert('Success', 'Password updated successfully.', [
-        { text: 'Continue', onPress: () => router.replace('/(app)') }
+        { text: 'Continue to Dashboard', onPress: () => router.replace('/(app)') }
       ]);
     } catch (error: any) {
       Alert.alert('Error', error?.response?.data?.message || 'Failed to change password');
@@ -41,80 +44,159 @@ export default function ChangePasswordScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.card}>
-        <View style={styles.iconWrap}>
-          <Lock size={34} color={Colors.manager} />
+    <KeyboardAvoidingView 
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      style={styles.container}
+    >
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        <View style={styles.card}>
+          <LinearGradient
+            colors={[theme.manager + '20', theme.manager + '05']}
+            style={styles.iconWrap}
+          >
+            <ShieldCheck size={40} color={theme.manager} />
+          </LinearGradient>
+          
+          <View style={styles.header}>
+            <Text style={styles.title}>Secure Your Account</Text>
+            <Text style={styles.subtitle}>Please set a strong password to continue to your workspace.</Text>
+          </View>
+
+          <View style={styles.form}>
+            <Input
+              label="New Password"
+              placeholder="Min 6 characters"
+              secureTextEntry
+              value={password}
+              onChangeText={setPassword}
+            />
+            
+            <Input
+              label="Confirm Password"
+              placeholder="Repeat your password"
+              secureTextEntry
+              value={confirmPassword}
+              onChangeText={setConfirmPassword}
+            />
+
+            <TouchableOpacity 
+              onPress={handleSubmit} 
+              disabled={submitting}
+              activeOpacity={0.8}
+              style={styles.buttonContainer}
+            >
+              <LinearGradient
+                colors={[theme.admin, theme.admin + 'CC']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.gradientButton}
+              >
+                {submitting ? (
+                  <ActivityIndicator color="#ffffff" />
+                ) : (
+                  <View style={styles.buttonInner}>
+                    <Text style={styles.buttonText}>Update & Continue</Text>
+                    <Lock size={18} color="#fff" style={{ marginLeft: 8 }} />
+                  </View>
+                )}
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.footer}>
+            <Text style={styles.footerText}>This is a one-time requirement for first-time login security.</Text>
+          </View>
         </View>
-        <Text style={styles.title}>Set New Password</Text>
-        <Text style={styles.subtitle}>Please update your password to continue.</Text>
-
-        <TextInput
-          style={styles.input}
-          placeholder="New password"
-          placeholderTextColor={Colors.textDark}
-          secureTextEntry
-          value={password}
-          onChangeText={setPassword}
-        />
-        <TextInput
-          style={styles.input}
-          placeholder="Confirm password"
-          placeholderTextColor={Colors.textDark}
-          secureTextEntry
-          value={confirmPassword}
-          onChangeText={setConfirmPassword}
-        />
-
-        <Button title="Update Password" onPress={handleSubmit} loading={submitting} />
-      </View>
-    </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: theme.background,
+  },
+  scrollContent: {
+    flexGrow: 1,
     justifyContent: 'center',
     padding: Spacing.xl,
   },
   card: {
-    backgroundColor: Colors.surface,
-    borderRadius: Radius.xl,
+    backgroundColor: theme.surface,
+    borderRadius: Radius.xxl,
     borderWidth: 1,
-    borderColor: Colors.border,
-    padding: Spacing.xl,
-    gap: Spacing.md,
+    borderColor: theme.border,
+    padding: Spacing.xxl,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.2,
+    shadowRadius: 20,
+    elevation: 5,
   },
   iconWrap: {
-    width: 64,
-    height: 64,
-    borderRadius: Radius.full,
-    backgroundColor: Colors.manager + '15',
+    width: 80,
+    height: 80,
+    borderRadius: Radius.xl,
     justifyContent: 'center',
     alignItems: 'center',
     alignSelf: 'center',
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.xl,
+  },
+  header: {
+    marginBottom: Spacing.xl,
   },
   title: {
-    color: Colors.text,
-    fontSize: 24,
+    color: theme.text,
+    fontSize: 28,
     fontWeight: '800',
     textAlign: 'center',
+    marginBottom: Spacing.xs,
   },
   subtitle: {
-    color: Colors.textDim,
+    color: theme.textDim,
     textAlign: 'center',
-    marginBottom: Spacing.md,
+    fontSize: 16,
+    lineHeight: 22,
   },
-  input: {
-    backgroundColor: Colors.background,
-    borderWidth: 1,
-    borderColor: Colors.border,
+  form: {
+    gap: Spacing.md,
+  },
+  buttonContainer: {
+    marginTop: Spacing.lg,
     borderRadius: Radius.md,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.md,
-    color: Colors.text,
+    overflow: 'hidden',
+    shadowColor: theme.admin,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  gradientButton: {
+    paddingVertical: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  buttonInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  buttonText: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: 'bold',
+    letterSpacing: 0.5,
+  },
+  footer: {
+    marginTop: Spacing.xxl,
+    borderTopWidth: 1,
+    borderTopColor: theme.border,
+    paddingTop: Spacing.lg,
+  },
+  footerText: {
+    color: theme.textDark,
+    textAlign: 'center',
+    fontSize: 12,
+    fontStyle: 'italic',
   },
 });

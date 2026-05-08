@@ -1,4 +1,5 @@
-export const Colors = {
+export const DarkTheme = {
+  isDark: true,
   admin: '#FF4D4D',
   manager: '#FFB830',
   marketing: '#00E5A0',
@@ -12,11 +13,48 @@ export const Colors = {
   border: '#1e1e26',
   text: '#e8e8e8',
   textDim: '#888',
-  textDark: '#444',
+  textDark: '#666',
   success: '#4ade80',
   error: '#f87171',
   warning: '#fb923c',
   info: '#60a5fa',
+};
+
+export const LightTheme = {
+  isDark: false,
+  admin: '#E11D48',
+  manager: '#D97706',
+  marketing: '#059669',
+  receptionist: '#0284C7',
+  videographer: '#7C3AED',
+  editor: '#EA580C',
+  client: '#475569',
+  background: '#F8FAFC',
+  surface: '#FFFFFF',
+  surfaceLight: '#F1F5F9',
+  border: '#E2E8F0',
+  text: '#0F172A',
+  textDim: '#64748B',
+  textDark: '#94A3B8',
+  success: '#10B981',
+  error: '#EF4444',
+  warning: '#F59E0B',
+  info: '#3B82F6',
+};
+
+export const Colors = DarkTheme; // Default to Dark for "Elite" feel
+
+import { useColorScheme } from 'react-native';
+import { useSettingsStore } from '../store/settingsStore';
+
+export const useTheme = () => {
+  const systemColorScheme = useColorScheme();
+  const { themeMode } = useSettingsStore();
+
+  if (themeMode === 'light') return LightTheme;
+  if (themeMode === 'dark') return DarkTheme;
+  
+  return systemColorScheme === 'light' ? LightTheme : DarkTheme;
 };
 
 export const Spacing = {
