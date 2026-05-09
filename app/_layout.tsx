@@ -1,71 +1,62 @@
 import { useEffect } from 'react';
-import { Stack, useRootNavigationState, useRouter, useSegments } from 'expo-router';
+import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useAuthStore } from '../src/store/authStore';
-import { useTheme } from '../src/constants/theme';
+import { Colors } from '../src/constants/theme';
 import { setupMockAdapter } from '../src/api/mockData';
 import { apiClient } from '../src/api/client';
 
-// 🚀 Demo Mode: Set to false to use real backend API
+// 🚀 Demo Mode: false = real backend (https://studiolive-api.onrender.com)
 const USE_DEMO_DATA = false;
 
 export default function RootLayout() {
   const { initAuth, logout, isAuthenticated, user, isInitialized } = useAuthStore();
   const segments = useSegments();
-  const theme = useTheme();
   const router = useRouter();
-  const navigationState = useRootNavigationState();
 
+  // One-time initialization
   useEffect(() => {
-    let mounted = true;
-    if (mounted) {
-      if (USE_DEMO_DATA) {
-        setupMockAdapter(apiClient);
-      }
-      initAuth();
+    if (USE_DEMO_DATA) {
+      setupMockAdapter(apiClient);
     }
-    return () => { mounted = false; };
+    initAuth();
   }, []);
 
+  // Navigation guard
   useEffect(() => {
-    if (!isInitialized || !navigationState?.key) return;
-    
+    if (!isInitialized) return;
+
     const segmentPath = segments.join('/');
     const inAuthGroup = segments[0] === '(auth)';
-    const needsVerification = user?.emailVerified === false;
-    const needsPasswordChange = user?.isFirstLogin === true;
+    const inAppGroup = segments[0] === '(app)';
 
-    console.log(`[NAV] Guard sync: ${segmentPath} | Auth: ${isAuthenticated} | Init: ${isInitialized}`);
+    const needsVerification = user?.emailVerified === false;
+    const needsPasswordChange = user?.isFirstLogin === true && user?.emailVerified === true;
 
     if (!isAuthenticated) {
-      // Redirect to login only if NOT in auth group
       if (!inAuthGroup) {
-        console.log('[AUTH] Access denied, redirecting to login');
         router.replace('/(auth)/login');
       }
     } else {
-      // Authenticated users
       if (needsVerification && segmentPath !== '(auth)/verify') {
         router.replace('/(auth)/verify');
-      } else if (needsPasswordChange && segmentPath !== '(auth)/onboarding') {
-        router.replace('/(auth)/onboarding');
-      } else if (!needsVerification && !needsPasswordChange && inAuthGroup) {
-        // Redirect away from auth group if verified and finished onboarding
-        console.log('[AUTH] Verified session, redirecting to app core');
+      } else if (needsPasswordChange && segmentPath !== '(auth)/change-password') {
+        router.replace('/(auth)/change-password');
+      } else if (!needsVerification && !needsPasswordChange && !inAppGroup) {
         router.replace('/(app)');
       }
     }
-  }, [isAuthenticated, segments, isInitialized, navigationState?.key, user?.emailVerified, user?.isFirstLogin]);
+  }, [isAuthenticated, segments.join('/'), isInitialized, user?.emailVerified, user?.isFirstLogin]);
 
   return (
     <>
-      <StatusBar style={theme.isDark ? 'light' : 'dark'} />
+      <StatusBar style="light" />
       <Stack
         screenOptions={{
-          headerStyle: { backgroundColor: theme.background },
-          headerTintColor: theme.text,
+          headerStyle: { backgroundColor: Colors.background },
+          headerTintColor: Colors.text,
           headerTitleStyle: { fontWeight: 'bold' },
-          contentStyle: { backgroundColor: theme.background },
+          contentStyle: { backgroundColor: Colors.background },
           headerShown: false,
         }}
       >

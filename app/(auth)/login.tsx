@@ -17,7 +17,7 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [isBioAvailable, setIsBioAvailable] = useState(false);
-  const { setAuth, biometricsEnabled } = useAuthStore();
+  const { setAuth, biometricsEnabled, setBiometricsEnabled } = useAuthStore();
   const router = useRouter();
 
   useEffect(() => {
@@ -61,9 +61,25 @@ export default function Login() {
 
       await setAuth(user, access_token);
 
-      if (biometricsEnabled) {
-        await SecureStore.setItemAsync('user_email', loginEmail);
-        await SecureStore.setItemAsync('user_password', loginPassword);
+      // Always save credentials for biometric re-auth
+      await SecureStore.setItemAsync('user_email', loginEmail);
+      await SecureStore.setItemAsync('user_password', loginPassword);
+
+      // Auto-offer biometrics on first successful login if not yet enabled
+      if (isBioAvailable && !biometricsEnabled) {
+        Alert.alert(
+          'Enable Touch ID?',
+          'Use fingerprint or face recognition for faster sign-in next time.',
+          [
+            { text: 'Not Now', style: 'cancel' },
+            {
+              text: 'Enable',
+              onPress: async () => {
+                await setBiometricsEnabled(true);
+              },
+            },
+          ]
+        );
       }
 
       if (needsVerification) {
@@ -121,11 +137,10 @@ export default function Login() {
             <View style={styles.header}>
               <View style={styles.logoCircle}>
                 <Image
-                  source={require('../../assets/logo-aperture.png')}
+                  source={require('../../assets/icon-only.png')}
                   style={styles.logoImage}
                   resizeMode="contain"
                 />
-                <View style={styles.logoGlow} />
               </View>
               <Text style={styles.logo}>STUDIO<Text style={styles.logoHighlight}>LIVE</Text></Text>
               <Text style={styles.subtitle}>ELITE PRODUCTION OS</Text>
@@ -227,29 +242,25 @@ const createStyles = (theme: any) => StyleSheet.create({
     marginBottom: 60,
   },
   logoCircle: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: theme.surfaceLight,
+    width: 100,
+    height: 100,
+    borderRadius: 24,
+    backgroundColor: '#ffffff',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 20,
     borderWidth: 1,
-    borderColor: theme.border,
+    borderColor: 'rgba(255,77,77,0.3)',
+    shadowColor: '#FF4D4D',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    elevation: 8,
   },
   logoImage: {
-    width: 44,
-    height: 44,
+    width: 80,
+    height: 80,
     zIndex: 2,
-  },
-  logoGlow: {
-    position: 'absolute',
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: theme.admin,
-    opacity: 0.15,
-    zIndex: 1,
   },
   logo: {
     fontSize: 32,
