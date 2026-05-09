@@ -114,7 +114,7 @@ export default function AnimatedSplash({ onFinish }: Props) {
         >
           <View style={styles.iconContainer}>
             <Image
-              source={require('../../assets/icon-only.png')}
+              source={require('../../assets/icon_only.png')}
               style={styles.icon}
               resizeMode="contain"
             />

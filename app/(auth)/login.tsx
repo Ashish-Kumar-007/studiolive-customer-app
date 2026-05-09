@@ -137,7 +137,7 @@ export default function Login() {
             <View style={styles.header}>
               <View style={styles.logoCircle}>
                 <Image
-                  source={require('../../assets/icon-only.png')}
+                  source={require('../../assets/icon_only.png')}
                   style={styles.logoImage}
                   resizeMode="contain"
                 />
