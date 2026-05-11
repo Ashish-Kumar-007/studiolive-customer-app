@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, Platform, ActivityIndicator, Alert, Modal, TextInput } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, Platform, ActivityIndicator, Alert, TextInput } from 'react-native';
 import { useTheme, Radius, Spacing } from '../../src/constants/theme';
 import { Bell, Shield, Smartphone, Globe, Moon, ChevronRight, Volume2, Fingerprint, Settings, Sparkles, Zap, ShieldAlert, ArrowLeft, CheckCircle2 } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
@@ -9,6 +9,7 @@ import * as LocalAuthentication from 'expo-local-authentication';
 import { useAuthStore } from '../../src/store/authStore';
 import { useSettingsStore, ThemeMode } from '../../src/store/settingsStore';
 import { Input } from '../../src/components/Input';
+import { AppModal } from '../../src/components/AppModal';
 
 export default function SettingsScreen() {
   const router = useRouter();
@@ -217,100 +218,79 @@ export default function SettingsScreen() {
         </ScrollView>
 
         {/* Biometric Sync Modal */}
-        <Modal
+        <AppModal
           visible={showBioSync}
-          transparent
-          animationType="fade"
+          onClose={() => { setShowBioSync(false); setVerifyPassword(''); }}
+          title="Sync Biometrics"
+          subtitle="Enter your password to link this device's hardware"
+          variant="center"
+          accentColor={theme.videographer}
+          scrollable={false}
+          footer={
+            <>
+              <TouchableOpacity
+                style={[styles.cancelBtn, { flex: 1, backgroundColor: theme.border, borderColor: theme.border }]}
+                onPress={() => { setShowBioSync(false); setVerifyPassword(''); }}
+                disabled={syncing}
+              >
+                <Text style={[styles.cancelBtnText, { color: theme.text }]}>Abort</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.confirmBtn, { flex: 1, backgroundColor: theme.videographer }]}
+                onPress={confirmBioSync}
+                disabled={syncing}
+              >
+                {syncing ? <ActivityIndicator color="#fff" /> : <Text style={styles.confirmBtnText}>Authorize</Text>}
+              </TouchableOpacity>
+            </>
+          }
         >
-          <View style={styles.modalOverlay}>
-            <View style={[styles.modalContent, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-              <View style={[styles.modalIconBg, { backgroundColor: theme.videographer + '15' }]}>
-                <Fingerprint size={32} color={theme.videographer} />
-              </View>
-              <Text style={[styles.modalTitle, { color: theme.text }]}>Sync Biometrics</Text>
-              <Text style={styles.modalSubtitle}>Enter your current password to securely link your credentials to this device's hardware.</Text>
-              
-              <TextInput
-                style={[styles.modalInput, { backgroundColor: theme.background, borderColor: theme.border, color: theme.text }]}
-                placeholder="Current Access Key"
-                placeholderTextColor={theme.textDim}
-                secureTextEntry
-                value={verifyPassword}
-                onChangeText={setVerifyPassword}
-                autoFocus
-              />
-
-              <View style={styles.modalActions}>
-                <TouchableOpacity
-                  style={[styles.cancelBtn, { backgroundColor: theme.border, borderColor: theme.border }]}
-                  onPress={() => {
-                    setShowBioSync(false);
-                    setVerifyPassword('');
-                  }}
-                  disabled={syncing}
-                >
-                  <Text style={[styles.cancelBtnText, { color: theme.text }]}>Abort</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.confirmBtn, { backgroundColor: theme.videographer }]}
-                  onPress={confirmBioSync}
-                  disabled={syncing}
-                >
-                  {syncing ? <ActivityIndicator color="#fff" /> : <Text style={styles.confirmBtnText}>Authorize Sync</Text>}
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-        </Modal>
+          <TextInput
+            style={[styles.modalInput, { backgroundColor: theme.background, borderColor: theme.border, color: theme.text }]}
+            placeholder="Current Access Key"
+            placeholderTextColor={theme.textDim}
+            secureTextEntry
+            value={verifyPassword}
+            onChangeText={setVerifyPassword}
+            autoFocus
+          />
+        </AppModal>
 
         {/* Theme Selection Modal */}
-        <Modal
+        <AppModal
           visible={showThemeSelector}
-          transparent
-          animationType="slide"
+          onClose={() => setShowThemeSelector(false)}
+          title="Visual Environment"
+          subtitle="Select the interface protocol for your workspace"
+          accentColor={theme.videographer}
+          scrollable={false}
+          footer={
+            <TouchableOpacity
+              style={[styles.cancelBtn, { flex: 1, backgroundColor: theme.border }]}
+              onPress={() => setShowThemeSelector(false)}
+            >
+              <Text style={[styles.cancelBtnText, { color: theme.text }]}>Close</Text>
+            </TouchableOpacity>
+          }
         >
-          <View style={styles.modalOverlay}>
-            <View style={[styles.modalContent, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-              <View style={[styles.modalIconBg, { backgroundColor: theme.videographer + '15' }]}>
-                <Moon size={32} color={theme.videographer} />
-              </View>
-              <Text style={[styles.modalTitle, { color: theme.text }]}>Visual Environment</Text>
-              <Text style={styles.modalSubtitle}>Select the interface protocol for your workspace.</Text>
-
-              <View style={styles.themeOptions}>
-                {(['system', 'light', 'dark'] as ThemeMode[]).map((mode) => (
-                  <TouchableOpacity
-                    key={mode}
-                    style={[
-                      styles.themeOption,
-                      themeMode === mode && { backgroundColor: theme.videographer + '20', borderColor: theme.videographer }
-                    ]}
-                    onPress={() => {
-                      setThemeMode(mode);
-                      setShowThemeSelector(false);
-                    }}
-                  >
-                    <Text style={[
-                      styles.themeOptionText, 
-                      { color: theme.text },
-                      themeMode === mode && { color: theme.videographer }
-                    ]}>
-                      {getThemeLabel(mode)}
-                    </Text>
-                    {themeMode === mode && <CheckCircle2 size={18} color={theme.videographer} />}
-                  </TouchableOpacity>
-                ))}
-              </View>
-
+          <View style={styles.themeOptions}>
+            {(['system', 'light', 'dark'] as ThemeMode[]).map((mode) => (
               <TouchableOpacity
-                style={[styles.cancelBtn, { width: '100%', marginTop: 10, backgroundColor: theme.border }]}
-                onPress={() => setShowThemeSelector(false)}
+                key={mode}
+                style={[
+                  styles.themeOption,
+                  themeMode === mode && { backgroundColor: theme.videographer + '20', borderColor: theme.videographer }
+                ]}
+                onPress={() => { setThemeMode(mode); setShowThemeSelector(false); }}
               >
-                <Text style={[styles.cancelBtnText, { color: theme.text }]}>Close</Text>
+                <Text style={[styles.themeOptionText, { color: theme.text }, themeMode === mode && { color: theme.videographer }]}>
+                  {getThemeLabel(mode)}
+                </Text>
+                {themeMode === mode && <CheckCircle2 size={18} color={theme.videographer} />}
               </TouchableOpacity>
-            </View>
+            ))}
           </View>
-        </Modal>
+        </AppModal>
       </LinearGradient>
     </View>
   );
