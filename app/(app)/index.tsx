@@ -132,11 +132,67 @@ export default function Dashboard() {
     if (role === 'ADMIN' || role === 'MANAGER') {
       return (
         <>
+          {/* ── OPERATIONS PANEL — shown first, instant access ── */}
           <View style={styles.section}>
-            <LinearGradient 
-              colors={['#020617', '#1E1B4B']} 
-              start={{ x: 0, y: 0 }} 
-              end={{ x: 1, y: 1 }} 
+            <View style={styles.opsPanelHeader}>
+              <View style={styles.opsBadge}>
+                <View style={styles.opsBadgeDot} />
+                <Text style={styles.opsBadgeText}>OPERATIONS</Text>
+              </View>
+              <Text style={styles.opsPanelTitle}>Command Center</Text>
+            </View>
+
+            <View style={styles.opsGrid}>
+              <TouchableOpacity style={styles.opsCard} onPress={() => router.push('/(app)/team')} activeOpacity={0.85}>
+                <View style={[styles.opsCardIcon, { backgroundColor: theme.admin + '20' }]}>
+                  <Users size={22} color={theme.admin} />
+                </View>
+                <Text style={styles.opsCardLabel}>Team</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.opsCard} onPress={() => router.push('/(app)/leads')} activeOpacity={0.85}>
+                <View style={[styles.opsCardIcon, { backgroundColor: theme.marketing + '20' }]}>
+                  <FileText size={22} color={theme.marketing} />
+                </View>
+                <Text style={styles.opsCardLabel}>Leads</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.opsCard} onPress={() => router.push('/(app)/tasks')} activeOpacity={0.85}>
+                <View style={[styles.opsCardIcon, { backgroundColor: theme.videographer + '20' }]}>
+                  <Video size={22} color={theme.videographer} />
+                </View>
+                <Text style={styles.opsCardLabel}>Tasks</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.opsCard} onPress={() => router.push('/(app)/reporting')} activeOpacity={0.85}>
+                <View style={[styles.opsCardIcon, { backgroundColor: theme.success + '20' }]}>
+                  <TrendingUp size={22} color={theme.success} />
+                </View>
+                <Text style={styles.opsCardLabel}>Reports</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.opsCard} onPress={() => router.push('/(app)/manager/assign')} activeOpacity={0.85}>
+                <View style={[styles.opsCardIcon, { backgroundColor: theme.manager + '20' }]}>
+                  <PlusCircle size={22} color={theme.manager} />
+                </View>
+                <Text style={styles.opsCardLabel}>Assign</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.opsCard} onPress={() => router.push('/(app)/manager/targets')} activeOpacity={0.85}>
+                <View style={[styles.opsCardIcon, { backgroundColor: theme.warning + '20' }]}>
+                  <Target size={22} color={theme.warning} />
+                </View>
+                <Text style={styles.opsCardLabel}>Targets</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* ── REVENUE INTELLIGENCE ── */}
+          <View style={styles.section}>
+            <LinearGradient
+              colors={['#020617', '#1E1B4B']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
               style={styles.execHeroGradientCard}
             >
               <View style={styles.execHeroHeader}>
@@ -149,7 +205,7 @@ export default function Dashboard() {
                   <Text style={styles.liveText}>LIVE</Text>
                 </View>
               </View>
-              
+
               <View style={styles.mainRevenueContainer}>
                 <Text style={styles.revenueMainValue}>₹{(stats.totalEarned || 0).toLocaleString()}</Text>
                 <Text style={styles.revenueMainLabel}>REALIZED INCOME</Text>
@@ -158,7 +214,7 @@ export default function Dashboard() {
               <View style={styles.progressTrack}>
                 <View style={[styles.progressFill, { width: '65%', backgroundColor: theme.success }]} />
               </View>
-              
+
               <View style={styles.revenueBreakdownGrid}>
                 <View style={styles.breakdownItem}>
                   <View style={styles.breakdownHeader}>
@@ -184,6 +240,7 @@ export default function Dashboard() {
             </LinearGradient>
           </View>
 
+          {/* ── STRATEGIC PIPELINE ── */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Strategic Pipeline</Text>
             <View style={styles.execPipelineGrid}>
@@ -211,6 +268,7 @@ export default function Dashboard() {
             </View>
           </View>
 
+          {/* ── PERFORMANCE ELITE ── */}
           {leaderboard.length > 0 && (
             <View style={styles.section}>
               <View style={styles.execLeaderboardHeader}>
@@ -233,18 +291,10 @@ export default function Dashboard() {
               </View>
             </View>
           )}
-
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Operations Desk</Text>
-            <View style={styles.actionsGrid}>
-              {renderQuickAction('Team', Users, '/(app)/team', theme.admin)}
-              {renderQuickAction('Leads', FileText, '/(app)/leads', theme.marketing)}
-              {renderQuickAction('Assign', PlusCircle, '/(app)/manager/assign', theme.manager)}
-            </View>
-          </View>
         </>
       );
     }
+
 
     if (role === 'MARKETING') {
       return (
@@ -484,6 +534,69 @@ const createStyles = (theme: any) => StyleSheet.create({
     paddingTop: 0,
     marginBottom: Spacing.md,
   },
+  // ── Operations Panel ──
+  opsPanelHeader: {
+    marginBottom: Spacing.md,
+  },
+  opsBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 6,
+  },
+  opsBadgeDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: theme.admin,
+  },
+  opsBadgeText: {
+    fontSize: 10,
+    fontWeight: '900',
+    color: theme.admin,
+    letterSpacing: 2,
+  },
+  opsPanelTitle: {
+    fontSize: 22,
+    fontWeight: '900',
+    color: theme.text,
+    letterSpacing: -0.5,
+  },
+  opsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  opsCard: {
+    width: '30%',
+    flexGrow: 1,
+    backgroundColor: theme.surface,
+    borderRadius: Radius.xl,
+    borderWidth: 1,
+    borderColor: theme.border,
+    padding: Spacing.md,
+    alignItems: 'center',
+    gap: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  opsCardIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: Radius.lg,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  opsCardLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: theme.text,
+    letterSpacing: 0.3,
+  },
+
   roleBanner: {
     marginHorizontal: Spacing.lg,
     marginBottom: Spacing.lg,
