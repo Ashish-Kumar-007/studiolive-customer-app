@@ -279,12 +279,15 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(99, 102, 241, 0.05)',
   },
   otpInput: {
-    width: '100%',
-    height: '100%',
+    width: (width - Spacing.xl * 4 - 40) / 6,
+    height: 60,
     textAlign: 'center',
+    textAlignVertical: 'center',
     fontSize: 24,
     fontWeight: '800',
     color: '#fff',
+    padding: 0,
+    includeFontPadding: false,
   },
   submitBtn: {
     height: 58,
