@@ -44,6 +44,17 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
   logout: async () => {
     console.log('[AUTH] Terminating session');
+    try {
+      // Notify backend to invalidate the session
+      const userData = await SecureStore.getItemAsync('user_data');
+      if (userData) {
+        const user = JSON.parse(userData);
+        const { apiClient } = await import('../api/client');
+        await apiClient.post('/auth/logout', { email: user.email });
+      }
+    } catch (_) {
+      // Fire-and-forget — always clear local state regardless
+    }
     await SecureStore.deleteItemAsync('access_token');
     await SecureStore.deleteItemAsync('user_data');
     set({ user: null, token: null, isAuthenticated: false, isInitialized: true });

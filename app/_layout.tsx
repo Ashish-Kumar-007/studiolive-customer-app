@@ -31,7 +31,6 @@ export default function RootLayout() {
     const inAppGroup = segments[0] === '(app)';
 
     const needsVerification = user?.emailVerified === false;
-    const needsPasswordChange = user?.isFirstLogin === true && user?.emailVerified === true;
 
     if (!isAuthenticated) {
       if (!inAuthGroup) {
@@ -40,13 +39,11 @@ export default function RootLayout() {
     } else {
       if (needsVerification && segmentPath !== '(auth)/verify') {
         router.replace('/(auth)/verify');
-      } else if (needsPasswordChange && segmentPath !== '(auth)/change-password') {
-        router.replace('/(auth)/change-password');
-      } else if (!needsVerification && !needsPasswordChange && !inAppGroup) {
+      } else if (!needsVerification && !inAppGroup) {
         router.replace('/(app)');
       }
     }
-  }, [isAuthenticated, segments.join('/'), isInitialized, user?.emailVerified, user?.isFirstLogin]);
+  }, [isAuthenticated, segments.join('/'), isInitialized, user?.emailVerified]);
 
   return (
     <>
