@@ -14,7 +14,6 @@ import {
   CheckCircle2, 
   PlusCircle,
   FileText,
-  LayoutDashboard,
   Calendar,
   ChevronRight,
   CircleDollarSign
@@ -471,19 +470,6 @@ export default function Dashboard() {
         <View style={[styles.avatarSmall, { backgroundColor: theme.admin + '20' }]}>
           <Text style={[styles.avatarLetter, { color: theme.admin }]}>{user?.name?.[0]}</Text>
         </View>
-      </View>
-
-      <View style={styles.roleBanner}>
-        <LayoutDashboard size={16} color={theme.admin} />
-        <Text style={styles.roleBannerText}>
-          {role === 'ADMIN' || role === 'MANAGER'
-            ? 'You are viewing management insights and team controls.'
-            : role === 'MARKETING'
-            ? 'Focus on lead capture, follow-ups, and targets.'
-            : role === 'RECEPTIONIST'
-            ? 'Prioritize qualification and pipeline movement.'
-            : 'Track tasks and delivery status for ongoing projects.'}
-        </Text>
       </View>
 
       {roleSpecificContent}
