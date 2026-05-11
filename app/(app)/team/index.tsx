@@ -8,6 +8,7 @@ import { RoleBadge } from '../../../src/components/RoleBadge';
 import { UserPlus, X, Phone, Mail, Trash2, Target, BadgeCheck, Users } from 'lucide-react-native';
 import { UserRole, useAuthStore } from '../../../src/store/authStore';
 import { useConfirm } from '../../../src/components/ConfirmModal';
+import { useSuccess } from '../../../src/components/SuccessModal';
 
 interface Member {
   id: string;
@@ -28,6 +29,7 @@ const TeamManagement = () => {
   const styles = createStyles(theme);
   const { user, isAuthenticated } = useAuthStore();
   const { showConfirm, ConfirmDialog } = useConfirm();
+  const { showSuccess, SuccessDialog } = useSuccess();
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -149,16 +151,21 @@ const TeamManagement = () => {
     setSubmitting(true);
     try {
       await apiClient.post('/users/register', form);
-      Alert.alert('Success', `User registered!`);
       setShowForm(false);
       setForm({ name: '', email: '', role: 'MARKETING', phone: '' });
       fetchMembers(1, true);
+      showSuccess({
+        title: 'Member Registered!',
+        message: `${form.name} has been added to the team.`,
+        detail: form.email,
+        buttonText: 'Perfect',
+      });
     } catch (error: any) {
       Alert.alert('Error', error.response?.data?.message || 'Failed to register member');
     } finally {
       setSubmitting(false);
     }
-  }, [form, fetchMembers, apiClient]);
+  }, [form, fetchMembers, showSuccess]);
 
   const AVATAR_COLORS = [
     '#7C3AED', '#0EA5E9', '#10B981', '#F59E0B', '#EF4444', 
@@ -338,6 +345,7 @@ const TeamManagement = () => {
         </KeyboardAvoidingView>
       </Modal>
       <ConfirmDialog />
+      <SuccessDialog />
     </View>
   );
 };
