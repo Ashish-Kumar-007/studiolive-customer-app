@@ -1,13 +1,13 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert, RefreshControl, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert, Modal, ScrollView, KeyboardAvoidingView, Platform, RefreshControl, ActivityIndicator } from 'react-native';
 import { useTheme, Spacing, Radius } from '../../../src/constants/theme';
 import { apiClient } from '../../../src/api/client';
 import { Input } from '../../../src/components/Input';
-import { AppModal } from '../../../src/components/AppModal';
 import Button from '../../../src/components/AppButton';
 import { RoleBadge } from '../../../src/components/RoleBadge';
 import { UserPlus, X, Phone, Mail, Trash2, Target, BadgeCheck, Users } from 'lucide-react-native';
 import { UserRole, useAuthStore } from '../../../src/store/authStore';
+import { useConfirm } from '../../../src/components/ConfirmModal';
 
 interface Member {
   id: string;
@@ -27,6 +27,7 @@ const TeamManagement = () => {
   const theme = useTheme();
   const styles = createStyles(theme);
   const { user, isAuthenticated } = useAuthStore();
+  const { showConfirm, ConfirmDialog } = useConfirm();
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -121,27 +122,23 @@ const TeamManagement = () => {
       return;
     }
 
-    Alert.alert(
-      'Remove Member',
-      `Are you sure you want to remove ${member.name}?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Remove', 
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await apiClient.delete(`/users/${member.id}`);
-              Alert.alert('Success', 'Member removed successfully.');
-              fetchMembers(1, true);
-            } catch (error: any) {
-              Alert.alert('Error', error.response?.data?.message || 'Failed to remove member');
-            }
-          }
-        }
-      ]
-    );
-  }, [user?.role, fetchMembers, apiClient]);
+    const confirmed = await showConfirm({
+      title: 'Remove Member',
+      message: `Remove ${member.name} from the team? This action cannot be undone.`,
+      confirmText: 'Remove',
+      cancelText: 'Keep',
+      variant: 'danger',
+    });
+
+    if (confirmed) {
+      try {
+        await apiClient.delete(`/users/${member.id}`);
+        fetchMembers(1, true);
+      } catch (error: any) {
+        Alert.alert('Error', error.response?.data?.message || 'Failed to remove member');
+      }
+    }
+  }, [user?.role, fetchMembers, showConfirm]);
 
   const handleRegister = useCallback(async () => {
     if (!form.name || !form.email || !form.phone) {
@@ -275,49 +272,72 @@ const TeamManagement = () => {
       )}
 
       {/* Target Modal */}
-      <AppModal
-        visible={showTargetForm}
-        onClose={() => setShowTargetForm(false)}
-        title="Set Target"
-        subtitle={`For ${selectedStaff?.name}`}
-        accentColor={theme.marketing}
-        footer={
-          <>
-            <Button title="Cancel" variant="outline" onPress={() => setShowTargetForm(false)} style={{ flex: 1 }} />
-            <Button title="Set Target" onPress={handleSetTarget} loading={settingTarget} style={{ flex: 2, backgroundColor: theme.marketing }} />
-          </>
-        }
-      >
-        <Input label="Lead Quota" placeholder="e.g. 10" keyboardType="numeric" value={targetCount} onChangeText={setTargetCount} />
-        <Input label="Notes" placeholder="Special instructions..." value={targetNotes} onChangeText={setTargetNotes} multiline />
-      </AppModal>
+      <Modal visible={showTargetForm} transparent animationType="fade">
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <View>
+                <Text style={styles.modalTitle}>Set Target</Text>
+                <Text style={styles.modalSubtitle}>For {selectedStaff?.name}</Text>
+              </View>
+              <TouchableOpacity onPress={() => setShowTargetForm(false)} style={styles.closeBtn}>
+                <X color={theme.text} size={20} />
+              </TouchableOpacity>
+            </View>
+            <ScrollView showsVerticalScrollIndicator={false} style={styles.modalBody}>
+              <Input label="Lead Quota" placeholder="e.g. 10" keyboardType="numeric" value={targetCount} onChangeText={setTargetCount} />
+              <Input label="Notes" placeholder="Special instructions..." value={targetNotes} onChangeText={setTargetNotes} multiline />
+            </ScrollView>
+            <View style={styles.modalFooter}>
+              <Button title="Cancel" variant="outline" onPress={() => setShowTargetForm(false)} style={{ flex: 1 }} />
+              <View style={{ width: 12 }} />
+              <Button title="Set Target" onPress={handleSetTarget} loading={settingTarget} style={{ flex: 2, backgroundColor: theme.marketing }} />
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
 
       {/* Register Modal */}
-      <AppModal
-        visible={showForm}
-        onClose={() => setShowForm(false)}
-        title="Register Member"
-        subtitle="Create a new staff account"
-        accentColor={theme.admin}
-        footer={
-          <Button
-            title="Create Account"
-            onPress={handleRegister}
-            loading={submitting}
-            style={{ flex: 1, backgroundColor: theme.admin, height: 56, borderRadius: Radius.full }}
-          />
-        }
-      >
-        <Input label="Full Name" placeholder="John Doe" value={form.name} onChangeText={(t) => setForm({ ...form, name: t })} />
-        <Input label="Email Address" placeholder="john@studiolive.com" value={form.email} onChangeText={(t) => setForm({ ...form, email: t })} autoCapitalize="none" keyboardType="email-address" />
-        <Input label="Phone Number" placeholder="+91 98765 43210" value={form.phone} onChangeText={(t) => setForm({ ...form, phone: t })} keyboardType="phone-pad" />
-        <Select
-          label="Assign Role"
-          value={form.role}
-          options={ROLE_OPTIONS.filter(o => user?.role === 'ADMIN' || o.value !== 'ADMIN')}
-          onSelect={(val) => setForm({ ...form, role: val as UserRole })}
-        />
-      </AppModal>
+      <Modal visible={showForm} transparent animationType="slide">
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.modalOverlay}>
+          <View style={styles.registerModal}>
+            <View style={styles.modalHeader}>
+              <View>
+                <Text style={styles.modalTitle}>Register Member</Text>
+                <Text style={styles.modalSubtitle}>Create a new staff account</Text>
+              </View>
+              <TouchableOpacity onPress={() => setShowForm(false)} style={styles.closeBtn}>
+                <X color={theme.text} size={20} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView showsVerticalScrollIndicator={false} style={styles.modalBody}>
+              <Input label="Full Name" placeholder="John Doe" value={form.name} onChangeText={(t) => setForm({ ...form, name: t })} />
+              <Input label="Email Address" placeholder="john@studiolive.com" value={form.email} onChangeText={(t) => setForm({ ...form, email: t })} autoCapitalize="none" keyboardType="email-address" />
+              <Input label="Phone Number" placeholder="+91 98765 43210" value={form.phone} onChangeText={(t) => setForm({ ...form, phone: t })} keyboardType="phone-pad" />
+
+              <Select
+                label="Assign Role"
+                value={form.role}
+                options={ROLE_OPTIONS.filter(o => 
+                  user?.role === 'ADMIN' || o.value !== 'ADMIN'
+                )}
+                onSelect={(val) => setForm({ ...form, role: val as UserRole })}
+              />
+            </ScrollView>
+            
+            <View style={styles.modalFooter}>
+              <Button
+                title="Create Account"
+                onPress={handleRegister}
+                loading={submitting}
+                style={{ flex: 1, backgroundColor: theme.admin, height: 56, borderRadius: Radius.full }}
+              />
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+      <ConfirmDialog />
     </View>
   );
 };

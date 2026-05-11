@@ -1,8 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Alert, RefreshControl } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Alert, Modal, RefreshControl } from 'react-native';
 import { useTheme, Spacing, Radius } from '../../../src/constants/theme';
 import { useAuthStore } from '../../../src/store/authStore';
-import { AppModal } from '../../../src/components/AppModal';
 import { apiClient } from '../../../src/api/client';
 import { Input } from '../../../src/components/Input';
 import Button from '../../../src/components/AppButton';
@@ -151,74 +150,80 @@ export default function ReceptionistLeads() {
         />
       )}
 
-      <AppModal
+      <Modal
         visible={!!selectedLead}
-        onClose={() => setSelectedLead(null)}
-        title="Qualify Lead"
-        accentColor={theme.receptionist}
-        scrollable={false}
-        footer={
-          <View style={{ flex: 1, gap: 10 }}>
-            <Button
-              title="Mark Convinced"
-              onPress={() => handleQualify('CONVINCED')}
-              loading={qualifying}
-              style={{ backgroundColor: theme.receptionist, width: '100%' }}
-              textStyle={{ color: '#fff' }}
-            />
-            <Button
-              title="Archive Lead"
-              variant="ghost"
-              onPress={() => handleQualify('ARCHIVED')}
-              style={{ width: '100%' }}
-              textStyle={{ color: theme.textDim }}
-            />
-          </View>
-        }
+        transparent
+        animationType="slide"
       >
-        <View style={styles.detailCard}>
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Client Name</Text>
-            <Text style={styles.detailValue}>{selectedLead?.name}</Text>
-          </View>
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Business Type</Text>
-            <Text style={styles.detailValue}>{selectedLead?.business}</Text>
-          </View>
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Phone Number</Text>
-            <Text style={styles.detailValue}>{selectedLead?.phone}</Text>
-          </View>
-        </View>
-        <Input
-          label="Final Agreed Amount (INR)"
-          placeholder="e.g. 50000"
-          keyboardType="numeric"
-          value={amount}
-          onChangeText={setAmount}
-        />
-      </AppModal>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Qualify Lead</Text>
+              <TouchableOpacity style={styles.closeBtn} onPress={() => setSelectedLead(null)}>
+                <X color={theme.text} size={24} />
+              </TouchableOpacity>
+            </View>
 
-      <AppModal
-        visible={showSuccess}
-        onClose={() => setShowSuccess(false)}
-        title="Lead Qualified"
-        variant="center"
-        accentColor={theme.success}
-        scrollable={false}
-        footer={
-          <Button
-            title="Great!"
-            onPress={() => setShowSuccess(false)}
-            style={{ flex: 1, backgroundColor: theme.success }}
-          />
-        }
-      >
-        <View style={{ alignItems: 'center', paddingVertical: 8 }}>
-          <CheckCircle2 size={56} color={theme.success} />
-          <Text style={styles.successDesc}>The lead has been successfully moved to convinced status and the production team has been notified.</Text>
+            <View style={styles.detailCard}>
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>Client Name</Text>
+                <Text style={styles.detailValue}>{selectedLead?.name}</Text>
+              </View>
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>Business Type</Text>
+                <Text style={styles.detailValue}>{selectedLead?.business}</Text>
+              </View>
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>Phone Number</Text>
+                <Text style={styles.detailValue}>{selectedLead?.phone}</Text>
+              </View>
+            </View>
+
+            <View style={styles.inputSection}>
+              <Input
+                label="Final Agreed Amount (INR)"
+                placeholder="e.g. 50000"
+                keyboardType="numeric"
+                value={amount}
+                onChangeText={setAmount}
+              />
+            </View>
+
+            <View style={styles.modalActions}>
+              <Button 
+                title="Mark Convinced" 
+                onPress={() => handleQualify('CONVINCED')}
+                loading={qualifying}
+                style={{ backgroundColor: theme.receptionist, width: '100%', marginBottom: 12 }}
+                textStyle={{ color: '#fff' }}
+              />
+              <Button 
+                title="Archive Lead" 
+                variant="ghost" 
+                onPress={() => handleQualify('ARCHIVED')}
+                style={{ width: '100%' }}
+                textStyle={{ color: theme.textDim }}
+              />
+            </View>
+          </View>
         </View>
-      </AppModal>
+      </Modal>
+      <Modal visible={showSuccess} transparent animationType="fade">
+        <View style={styles.successModalOverlay}>
+          <View style={styles.successModalContent}>
+            <View style={styles.successIconCircle}>
+              <CheckCircle2 size={48} color={theme.success} />
+            </View>
+            <Text style={styles.successTitle}>Lead Qualified</Text>
+            <Text style={styles.successDesc}>The lead has been successfully moved to convinced status and the production team has been notified.</Text>
+            <Button 
+              title="Great!" 
+              onPress={() => setShowSuccess(false)}
+              style={{ width: '100%', backgroundColor: theme.success }}
+            />
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }

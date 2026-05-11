@@ -1,9 +1,8 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, Alert, ActivityIndicator, TouchableOpacity, KeyboardAvoidingView, Platform, Dimensions, TextInput } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Alert, ActivityIndicator, TouchableOpacity, KeyboardAvoidingView, Platform, Dimensions, Modal, TextInput } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme, Spacing, Radius } from '../../../src/constants/theme';
 import { Input } from '../../../src/components/Input';
-import { AppModal } from '../../../src/components/AppModal';
 import { apiClient } from '../../../src/api/client';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '../../../src/store/authStore';
@@ -341,26 +340,24 @@ export default function AssignTask() {
           />
         </ScrollView>
 
-        <AppModal
-          visible={showSuccess}
-          onClose={() => { setShowSuccess(false); router.replace('/(app)'); }}
-          title="Protocol Initiated"
-          variant="center"
-          accentColor={theme.success}
-          scrollable={false}
-          footer={
-            <Button
-              title="Acknowledge"
-              onPress={() => { setShowSuccess(false); router.replace('/(app)'); }}
-              style={{ flex: 1, backgroundColor: theme.success }}
-            />
-          }
-        >
-          <View style={{ alignItems: 'center', paddingVertical: 8 }}>
-            <CheckCircle2 size={56} color={theme.success} />
-            <Text style={[styles.modalDesc, { marginTop: 16 }]}>The assignment has been successfully integrated and the team member notified.</Text>
+        <Modal visible={showSuccess} transparent animationType="fade">
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <View style={styles.successIcon}>
+                <CheckCircle2 size={48} color={theme.success} />
+              </View>
+              <Text style={styles.modalTitle}>Protocol Initiated</Text>
+              <Text style={styles.modalDesc}>The assignment has been successfully integrated and the team member notified.</Text>
+              <Button 
+                title="Acknowledge" 
+                onPress={() => {
+                  setShowSuccess(false);
+                  router.replace('/(app)');
+                }} 
+              />
+            </View>
           </View>
-        </AppModal>
+        </Modal>
       </KeyboardAvoidingView>
     </View>
   );

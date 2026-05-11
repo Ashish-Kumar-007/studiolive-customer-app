@@ -1,11 +1,21 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, TextInput, Alert, Platform } from 'react-native';
+import { 
+  View, 
+  Text, 
+  StyleSheet, 
+  FlatList, 
+  TouchableOpacity, 
+  ActivityIndicator, 
+  TextInput, 
+  Modal, 
+  Alert,
+  KeyboardAvoidingView,
+  Platform
+} from 'react-native';
 import { useTheme, Spacing, Radius } from '../../../src/constants/theme';
 import { apiClient } from '../../../src/api/client';
 import { Target, Users, TrendingUp, Save, X, ChevronRight, Award } from 'lucide-react-native';
 import Button from '../../../src/components/AppButton';
-import { AppModal } from '../../../src/components/AppModal';
-
 
 interface MarketingStaff {
   id: string;
@@ -188,38 +198,63 @@ export default function TargetManagement() {
         }
       />
 
-      <AppModal
+      <Modal
         visible={!!selectedUser}
-        onClose={() => setSelectedUser(null)}
-        title={`Set ${period} Target`}
-        subtitle={`For ${selectedUser?.name}`}
-        accentColor={theme.marketing}
-        scrollable={false}
-        footer={
-          <>
-            <Button title="Cancel" variant="outline" style={{ flex: 1 }} onPress={() => setSelectedUser(null)} />
-            <Button title="Assign Target" style={{ flex: 2, backgroundColor: theme.marketing }} onPress={handleAssign} loading={updating} />
-          </>
-        }
+        transparent
+        animationType="fade"
+        onRequestClose={() => setSelectedUser(null)}
       >
-        <View style={styles.inputContainer}>
-          <Award size={20} color={theme.marketing} style={styles.inputIcon} />
-          <TextInput
-            style={styles.input}
-            placeholder={`Enter ${period.toLowerCase()} lead goal`}
-            placeholderTextColor={theme.textDark}
-            keyboardType="numeric"
-            value={targetCount}
-            onChangeText={setTargetCount}
-            autoFocus
-          />
-        </View>
-        <Text style={styles.inputHelp}>
-          {period === 'WEEKLY'
-            ? 'Weekly targets reset every Monday at 00:00.'
-            : 'Monthly targets are for the current calendar month.'}
-        </Text>
-      </AppModal>
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.modalOverlay}
+        >
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <View>
+                <Text style={styles.modalTitle}>Set {period} Target</Text>
+                <Text style={styles.modalSubtitle}>For {selectedUser?.name}</Text>
+              </View>
+              <TouchableOpacity onPress={() => setSelectedUser(null)}>
+                <X size={24} color={theme.textDim} />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.inputContainer}>
+              <Award size={20} color={theme.marketing} style={styles.inputIcon} />
+              <TextInput
+                style={styles.input}
+                placeholder={`Enter ${period.toLowerCase()} lead goal`}
+                placeholderTextColor={theme.textDark}
+                keyboardType="numeric"
+                value={targetCount}
+                onChangeText={setTargetCount}
+                autoFocus
+              />
+            </View>
+
+            <Text style={styles.inputHelp}>
+              {period === 'WEEKLY' 
+                ? 'Weekly targets reset every Monday at 00:00.' 
+                : 'Monthly targets are for the current calendar month.'}
+            </Text>
+
+            <View style={styles.modalFooter}>
+              <Button 
+                title="Cancel" 
+                variant="outline" 
+                style={{ flex: 1 }} 
+                onPress={() => setSelectedUser(null)} 
+              />
+              <Button 
+                title="Assign Target" 
+                style={{ flex: 2, backgroundColor: theme.marketing }} 
+                onPress={handleAssign}
+                loading={updating}
+              />
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
 
       {loading && (
         <View style={styles.loader}>
