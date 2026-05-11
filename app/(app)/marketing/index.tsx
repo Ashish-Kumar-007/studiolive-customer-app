@@ -89,94 +89,96 @@ export default function MarketingLeads() {
   };
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={styles.container}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
-    >
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        
-        <View style={styles.header}>
-          <View style={styles.iconCircle}>
-            <Target size={28} color={theme.marketing} />
-          </View>
-          <Text style={styles.title}>Capture Prospect</Text>
-          <Text style={styles.subtitle}>Enter details to inject a new lead into the pipeline</Text>
-        </View>
-
-        <Text style={styles.sectionTitle}>Client Details</Text>
-        <View style={styles.card}>
-          <Input
-            label="Client or Business Name"
-            placeholder="e.g. Acme Corp / John Doe"
-            value={form.name}
-            onChangeText={(text) => setForm({ ...form, name: text })}
-          />
-
-          <Input
-            label="Contact Number"
-            placeholder="+91 98765 43210"
-            value={form.phone}
-            onChangeText={(text) => setForm({ ...form, phone: text })}
-            keyboardType="phone-pad"
-          />
-        </View>
-
-        <Text style={styles.sectionTitle}>Project Scope</Text>
-        <View style={styles.card}>
-          {renderDropdown('Business Sector', BUSINESS_TYPES, form.business, 'business', (val) => setForm({ ...form, business: val }))}
+    <>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.container}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
+      >
+        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
           
-          {renderDropdown('Acquisition Source', LEAD_SOURCES, form.source, 'source', (val) => setForm({ ...form, source: val }))}
+          <View style={styles.header}>
+            <View style={styles.iconCircle}>
+              <Target size={28} color={theme.marketing} />
+            </View>
+            <Text style={styles.title}>Capture Prospect</Text>
+            <Text style={styles.subtitle}>Enter details to inject a new lead into the pipeline</Text>
+          </View>
 
-          <Input
-            label="Project Notes & Requirements"
-            placeholder="What exactly are they looking for?"
-            value={form.notes}
-            onChangeText={(text) => setForm({ ...form, notes: text })}
-            multiline
-            numberOfLines={4}
-            style={{ height: 100, textAlignVertical: 'top' }}
+          <Text style={styles.sectionTitle}>Client Details</Text>
+          <View style={styles.card}>
+            <Input
+              label="Client or Business Name"
+              placeholder="e.g. Acme Corp / John Doe"
+              value={form.name}
+              onChangeText={(text) => setForm({ ...form, name: text })}
+            />
+
+            <Input
+              label="Contact Number"
+              placeholder="+91 98765 43210"
+              value={form.phone}
+              onChangeText={(text) => setForm({ ...form, phone: text })}
+              keyboardType="phone-pad"
+            />
+          </View>
+
+          <Text style={styles.sectionTitle}>Project Scope</Text>
+          <View style={styles.card}>
+            {renderDropdown('Business Sector', BUSINESS_TYPES, form.business, 'business', (val) => setForm({ ...form, business: val }))}
+            
+            {renderDropdown('Acquisition Source', LEAD_SOURCES, form.source, 'source', (val) => setForm({ ...form, source: val }))}
+
+            <Input
+              label="Project Notes & Requirements"
+              placeholder="What exactly are they looking for?"
+              value={form.notes}
+              onChangeText={(text) => setForm({ ...form, notes: text })}
+              multiline
+              numberOfLines={4}
+              style={{ height: 100, textAlignVertical: 'top' }}
+            />
+          </View>
+        </ScrollView>
+
+        <View style={styles.footer}>
+          <Button
+            title="Inject Lead"
+            onPress={handleSubmit}
+            loading={loading}
+            variant="primary"
+            style={styles.submitBtn}
           />
         </View>
-      </ScrollView>
 
-      <View style={styles.footer}>
-        <Button
-          title="Inject Lead"
-          onPress={handleSubmit}
-          loading={loading}
-          variant="primary"
-          style={styles.submitBtn}
-        />
-      </View>
-
-      {/* Success Modal Overlay */}
-      {showSuccess && (
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalGlow} />
-            <View style={styles.successIconContainer}>
-              <CheckCircle2 size={40} color={theme.success} />
+        {/* Success Modal Overlay */}
+        {showSuccess && (
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <View style={styles.modalGlow} />
+              <View style={styles.successIconContainer}>
+                <CheckCircle2 size={40} color={theme.success} />
+              </View>
+              <Text style={styles.modalTitle}>Lead Injected</Text>
+              <Text style={styles.modalDesc}>
+                The prospect <Text style={{ color: theme.marketing, fontWeight: '800' }}>{form.name}</Text> has been successfully added to the production pipeline.
+              </Text>
+              <TouchableOpacity 
+                style={styles.modalBtn} 
+                onPress={() => {
+                  setShowSuccess(false);
+                  setForm({ name: '', phone: '', business: 'Real Estate', source: 'Instagram', notes: '' });
+                  router.replace('/(app)');
+                }}
+              >
+                <Text style={styles.modalBtnText}>Acknowledge</Text>
+              </TouchableOpacity>
             </View>
-            <Text style={styles.modalTitle}>Lead Injected</Text>
-            <Text style={styles.modalDesc}>
-              The prospect <Text style={{ color: theme.marketing, fontWeight: '800' }}>{form.name}</Text> has been successfully added to the production pipeline.
-            </Text>
-            <TouchableOpacity 
-              style={styles.modalBtn} 
-              onPress={() => {
-                setShowSuccess(false);
-                setForm({ name: '', phone: '', business: 'Real Estate', source: 'Instagram', notes: '' });
-                router.replace('/(app)');
-              }}
-            >
-              <Text style={styles.modalBtnText}>Acknowledge</Text>
-            </TouchableOpacity>
           </View>
-        </View>
-      )}
-    </KeyboardAvoidingView>
-    <AlertDialog />
+        )}
+      </KeyboardAvoidingView>
+      <AlertDialog />
+    </>
   );
 }
 
