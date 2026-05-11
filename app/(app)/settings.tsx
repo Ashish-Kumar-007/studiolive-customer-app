@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, Platform, ActivityIndicator, Alert, Modal, TextInput } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, Platform, ActivityIndicator, Modal, TextInput } from 'react-native';
 import { useTheme, Radius, Spacing } from '../../src/constants/theme';
 import { Bell, Shield, Smartphone, Globe, Moon, ChevronRight, Volume2, Fingerprint, Settings, Sparkles, Zap, ShieldAlert, ArrowLeft, CheckCircle2 } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
@@ -9,12 +9,14 @@ import * as LocalAuthentication from 'expo-local-authentication';
 import { useAuthStore } from '../../src/store/authStore';
 import { useSettingsStore, ThemeMode } from '../../src/store/settingsStore';
 import { Input } from '../../src/components/Input';
+import { useAlert } from '../../src/components/AlertModal';
 
 export default function SettingsScreen() {
   const router = useRouter();
   const theme = useTheme();
   const styles = createStyles(theme);
   const { user, biometricsEnabled, setBiometricsEnabled } = useAuthStore();
+  const { showAlert, AlertDialog } = useAlert();
   const { themeMode, setThemeMode } = useSettingsStore();
   
   const [notifications, setNotifications] = useState({
@@ -52,7 +54,7 @@ export default function SettingsScreen() {
     const isEnrolled = await LocalAuthentication.isEnrolledAsync();
 
     if (!hasHardware || !isEnrolled) {
-      Alert.alert('Hardware Required', 'Biometric hardware is not available or no fingerprints/faces are enrolled on this device.');
+      showAlert({ title: 'Hardware Required', message: 'Biometric hardware is not available or no fingerprints/faces are enrolled on this device.', variant: 'warning' });
       return;
     }
 
@@ -61,7 +63,7 @@ export default function SettingsScreen() {
 
   const confirmBioSync = useCallback(async () => {
     if (!verifyPassword) {
-      Alert.alert('Required', 'Please enter your current password to sync biometrics.');
+      showAlert({ title: 'Required', message: 'Please enter your current password to sync biometrics.', variant: 'warning' });
       return;
     }
 
@@ -71,11 +73,11 @@ export default function SettingsScreen() {
       await SecureStore.setItemAsync('user_password', verifyPassword);
       await setBiometricsEnabled(true);
       
-      Alert.alert('Protocol Synced', 'Biometric access has been securely linked to your credentials.');
+      showAlert({ title: 'Protocol Synced', message: 'Biometric access has been securely linked to your credentials.', variant: 'success' });
       setShowBioSync(false);
       setVerifyPassword('');
     } catch (error) {
-      Alert.alert('Sync Failed', 'Failed to securely store credentials.');
+      showAlert({ title: 'Sync Failed', message: 'Failed to securely store credentials.', variant: 'error' });
     } finally {
       setSyncing(false);
     }
@@ -312,6 +314,7 @@ export default function SettingsScreen() {
           </View>
         </Modal>
       </LinearGradient>
+      <AlertDialog />
     </View>
   );
 }

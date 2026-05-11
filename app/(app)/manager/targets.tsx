@@ -8,14 +8,13 @@ import {
   ActivityIndicator, 
   TextInput, 
   Modal, 
-  Alert,
-  KeyboardAvoidingView,
-  Platform
 } from 'react-native';
 import { useTheme, Spacing, Radius } from '../../../src/constants/theme';
 import { apiClient } from '../../../src/api/client';
 import { Target, Users, TrendingUp, Save, X, ChevronRight, Award } from 'lucide-react-native';
 import Button from '../../../src/components/AppButton';
+import { useAlert } from '../../../src/components/AlertModal';
+import { useSuccess } from '../../../src/components/SuccessModal';
 
 interface MarketingStaff {
   id: string;
@@ -29,6 +28,8 @@ interface MarketingStaff {
 export default function TargetManagement() {
   const theme = useTheme();
   const styles = createStyles(theme);
+  const { showAlert, AlertDialog } = useAlert();
+  const { showSuccess, SuccessDialog } = useSuccess();
   const [staff, setStaff] = useState<MarketingStaff[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -42,7 +43,7 @@ export default function TargetManagement() {
       const res = await apiClient.get('/targets/marketing-staff');
       setStaff(res.data);
     } catch (err) {
-      Alert.alert('Error', 'Could not fetch marketing staff data');
+      showAlert({ title: 'Error', message: 'Could not fetch marketing staff data', variant: 'error' });
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -58,7 +59,7 @@ export default function TargetManagement() {
     
     const count = parseInt(targetCount);
     if (isNaN(count) || count <= 0) {
-      Alert.alert('Invalid Input', 'Please enter a valid positive number.');
+      showAlert({ title: 'Invalid Input', message: 'Please enter a valid positive number.', variant: 'warning' });
       return;
     }
 
@@ -86,11 +87,13 @@ export default function TargetManagement() {
         });
       }
       
-      Alert.alert('Success', `${period} target assigned to ${selectedUser.name}`);
+      showSuccess({ title: 'Target Assigned!', message: `${period} target has been set successfully.`, detail: selectedUser.name });
+      setTargetValue('');
+      setSelectedUser(null);
       setSelectedUser(null);
       fetchStaff();
     } catch (err) {
-      Alert.alert('Error', 'Failed to assign target');
+      showAlert({ title: 'Error', message: 'Failed to assign target', variant: 'error' });
     } finally {
       setUpdating(false);
     }
@@ -261,6 +264,8 @@ export default function TargetManagement() {
           <ActivityIndicator size="large" color={theme.marketing} />
         </View>
       )}
+      <AlertDialog />
+      <SuccessDialog />
     </View>
   );
 }

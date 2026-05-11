@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Alert, KeyboardAvoidingView, Platform, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, KeyboardAvoidingView, Platform, TouchableOpacity } from 'react-native';
 import { useTheme, Spacing, Radius } from '../../../src/constants/theme';
 import { Input } from '../../../src/components/Input';
 import Button from '../../../src/components/AppButton';
 import { apiClient } from '../../../src/api/client';
 import { useRouter } from 'expo-router';
 import { Target, ChevronDown, CheckCircle2 } from 'lucide-react-native';
+import { useAlert } from '../../../src/components/AlertModal';
 
 const LEAD_SOURCES = ['Instagram', 'Referral', 'Website', 'Google', 'Walk-in'];
 const BUSINESS_TYPES = ['Real Estate', 'Corporate', 'Events', 'Restaurant', 'Product', 'Other'];
@@ -24,10 +25,11 @@ export default function MarketingLeads() {
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
   const router = useRouter();
+  const { showAlert, AlertDialog } = useAlert();
 
   const handleSubmit = async () => {
     if (!form.name || !form.phone || !form.business || !form.source) {
-      Alert.alert('Required Fields', 'Please complete all required fields.');
+      showAlert({ title: 'Required Fields', message: 'Please complete all required fields.', variant: 'warning' });
       return;
     }
 
@@ -37,7 +39,7 @@ export default function MarketingLeads() {
       setShowSuccess(true);
     } catch (error: any) {
       console.error(error);
-      Alert.alert('Error', error.response?.data?.message || 'Failed to capture lead');
+      showAlert({ title: 'Error', message: error.response?.data?.message || 'Failed to capture lead', variant: 'error' });
     } finally {
       setLoading(false);
     }
@@ -174,6 +176,7 @@ export default function MarketingLeads() {
         </View>
       )}
     </KeyboardAvoidingView>
+    <AlertDialog />
   );
 }
 

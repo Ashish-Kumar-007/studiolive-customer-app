@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, Alert, ActivityIndicator, TouchableOpacity, KeyboardAvoidingView, Platform, Dimensions, Modal, TextInput } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, TouchableOpacity, KeyboardAvoidingView, Platform, Dimensions, Modal, TextInput } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme, Spacing, Radius } from '../../../src/constants/theme';
 import { Input } from '../../../src/components/Input';
@@ -13,6 +13,7 @@ import {
   CheckCircle2, 
 } from 'lucide-react-native';
 import Button from '../../../src/components/AppButton';
+import { useAlert } from '../../../src/components/AlertModal';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
 const { width } = Dimensions.get('window');
@@ -35,6 +36,7 @@ export default function AssignTask() {
   const theme = useTheme();
   const styles = createStyles(theme);
   const { user, isAuthenticated } = useAuthStore();
+  const { showAlert, AlertDialog } = useAlert();
   const [leads, setLeads] = useState<Lead[]>([]);
   const [users, setUsers] = useState<StaffUser[]>([]);
   const [loading, setLoading] = useState(true);
@@ -94,17 +96,17 @@ export default function AssignTask() {
   const handleSubmit = useCallback(async () => {
     if (activeTab === 'TARGET') {
       if (!form.assignedId || !form.count) {
-        Alert.alert('Required Fields', 'Please select a marketing user and enter a target count.');
+        showAlert({ title: 'Required Fields', message: 'Please select a marketing user and enter a target count.', variant: 'warning' });
         return;
       }
     } else if (activeTab === 'GENERAL') {
       if (!form.assignedId || !form.deadline || !form.details) {
-        Alert.alert('Required Fields', 'Please select a staff member, deadline, and provide instructions.');
+        showAlert({ title: 'Required Fields', message: 'Please select a staff member, deadline, and provide instructions.', variant: 'warning' });
         return;
       }
     } else {
       if (!form.leadId || !form.assignedId || !form.deadline) {
-        Alert.alert('Required Fields', 'Please select a lead, staff member, and deadline.');
+        showAlert({ title: 'Required Fields', message: 'Please select a lead, staff member, and deadline.', variant: 'warning' });
         return;
       }
     }
@@ -135,7 +137,7 @@ export default function AssignTask() {
       }
       setShowSuccess(true);
     } catch (error: any) {
-      Alert.alert('Error', error.response?.data?.message || 'Failed to assign protocol');
+      showAlert({ title: 'Error', message: error.response?.data?.message || 'Failed to assign protocol', variant: 'error' });
     } finally {
       setSubmitting(false);
     }
@@ -359,6 +361,7 @@ export default function AssignTask() {
           </View>
         </Modal>
       </KeyboardAvoidingView>
+      <AlertDialog />
     </View>
   );
 }

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, Alert, TouchableOpacity, ActivityIndicator, Image } from 'react-native';
+import { View, Text, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, TouchableOpacity, ActivityIndicator, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTheme, Spacing, Radius } from '../../src/constants/theme';
 import { Input } from '../../src/components/Input';
@@ -9,6 +9,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as LocalAuthentication from 'expo-local-authentication';
 import * as SecureStore from 'expo-secure-store';
 import { Fingerprint, Shield, Mail, Lock as LockIcon, ChevronRight } from 'lucide-react-native';
+import { useAlert } from '../../src/components/AlertModal';
+import { useConfirm } from '../../src/components/ConfirmModal';
 
 export default function Login() {
   const theme = useTheme();
@@ -18,6 +20,8 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [isBioAvailable, setIsBioAvailable] = useState(false);
   const { setAuth, biometricsEnabled, setBiometricsEnabled } = useAuthStore();
+  const { showAlert, AlertDialog } = useAlert();
+  const { showConfirm, ConfirmDialog } = useConfirm();
   const router = useRouter();
 
   useEffect(() => {
@@ -32,7 +36,7 @@ export default function Login() {
 
   const handleBiometricLogin = async () => {
     if (!biometricsEnabled) {
-      Alert.alert('Not Enabled', 'Please login manually first and enable biometrics in settings.');
+      showAlert({ title: 'Not Enabled', message: 'Please login manually first and enable biometrics in settings.', variant: 'info' });
       return;
     }
 
@@ -48,7 +52,7 @@ export default function Login() {
       if (storedEmail && storedPassword) {
         performLogin(storedEmail, storedPassword);
       } else {
-        Alert.alert('Sync Required', 'Please login manually to re-sync biometrics.');
+        showAlert({ title: 'Sync Required', message: 'Please login manually to re-sync biometrics.', variant: 'warning' });
       }
     }
   };
@@ -67,19 +71,14 @@ export default function Login() {
 
       // Auto-offer biometrics on first successful login if not yet enabled
       if (isBioAvailable && !biometricsEnabled) {
-        Alert.alert(
-          'Enable Touch ID?',
-          'Use fingerprint or face recognition for faster sign-in next time.',
-          [
-            { text: 'Not Now', style: 'cancel' },
-            {
-              text: 'Enable',
-              onPress: async () => {
-                await setBiometricsEnabled(true);
-              },
-            },
-          ]
-        );
+        const ok = await showConfirm({
+          title: 'Enable Touch ID?',
+          message: 'Use fingerprint or face recognition for faster sign-in next time.',
+          confirmText: 'Enable',
+          cancelText: 'Not Now',
+          variant: 'info',
+        });
+        if (ok) await setBiometricsEnabled(true);
       }
 
       if (needsVerification) {
@@ -109,7 +108,7 @@ export default function Login() {
         return;
       }
 
-      Alert.alert('Access Denied', message || 'Invalid credentials.');
+      showAlert({ title: 'Access Denied', message: message || 'Invalid credentials.', variant: 'error' });
     } finally {
       setLoading(false);
     }
@@ -217,6 +216,8 @@ export default function Login() {
           </ScrollView>
         </KeyboardAvoidingView>
       </LinearGradient>
+      <AlertDialog />
+      <ConfirmDialog />
     </View>
   );
 }

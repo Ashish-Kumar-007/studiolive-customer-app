@@ -9,6 +9,7 @@ import { UserPlus, X, Phone, Mail, Trash2, Target, BadgeCheck, Users } from 'luc
 import { UserRole, useAuthStore } from '../../../src/store/authStore';
 import { useConfirm } from '../../../src/components/ConfirmModal';
 import { useSuccess } from '../../../src/components/SuccessModal';
+import { useAlert } from '../../../src/components/AlertModal';
 
 interface Member {
   id: string;
@@ -30,6 +31,7 @@ const TeamManagement = () => {
   const { user, isAuthenticated } = useAuthStore();
   const { showConfirm, ConfirmDialog } = useConfirm();
   const { showSuccess, SuccessDialog } = useSuccess();
+  const { showAlert, AlertDialog } = useAlert();
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -106,13 +108,13 @@ const TeamManagement = () => {
         count: Number(targetCount),
         notes: targetNotes,
       });
-      Alert.alert('Success', `Target set for ${selectedStaff.name}`);
+      showSuccess({ title: 'Target Set!', message: `Monthly target assigned successfully.`, detail: selectedStaff.name });
       setShowTargetForm(false);
       setSelectedStaff(null);
       setTargetCount('');
       setTargetNotes('');
     } catch (err: any) {
-      Alert.alert('Error', err.response?.data?.message || 'Failed to set target');
+      showAlert({ title: 'Error', message: err.response?.data?.message || 'Failed to set target', variant: 'error' });
     } finally {
       setSettingTarget(false);
     }
@@ -120,7 +122,7 @@ const TeamManagement = () => {
 
   const handleDelete = useCallback(async (member: Member) => {
     if (user?.role === 'MANAGER' && (member.role === 'ADMIN' || member.role === 'MANAGER')) {
-      Alert.alert('Permission Denied', 'Managers can only remove staff members.');
+      showAlert({ title: 'Permission Denied', message: 'Managers can only remove staff members.', variant: 'warning' });
       return;
     }
 
@@ -137,14 +139,14 @@ const TeamManagement = () => {
         await apiClient.delete(`/users/${member.id}`);
         fetchMembers(1, true);
       } catch (error: any) {
-        Alert.alert('Error', error.response?.data?.message || 'Failed to remove member');
+        showAlert({ title: 'Error', message: error.response?.data?.message || 'Failed to remove member', variant: 'error' });
       }
     }
   }, [user?.role, fetchMembers, showConfirm]);
 
   const handleRegister = useCallback(async () => {
     if (!form.name || !form.email || !form.phone) {
-      Alert.alert('Required', 'Please fill in all fields.');
+      showAlert({ title: 'Required', message: 'Please fill in all fields.', variant: 'warning' });
       return;
     }
 
@@ -161,7 +163,7 @@ const TeamManagement = () => {
         buttonText: 'Perfect',
       });
     } catch (error: any) {
-      Alert.alert('Error', error.response?.data?.message || 'Failed to register member');
+      showAlert({ title: 'Error', message: error.response?.data?.message || 'Failed to register member', variant: 'error' });
     } finally {
       setSubmitting(false);
     }
@@ -346,6 +348,7 @@ const TeamManagement = () => {
       </Modal>
       <ConfirmDialog />
       <SuccessDialog />
+      <AlertDialog />
     </View>
   );
 };

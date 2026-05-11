@@ -1,11 +1,12 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Alert, Modal, RefreshControl } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Modal, RefreshControl } from 'react-native';
 import { useTheme, Spacing, Radius } from '../../../src/constants/theme';
 import { useAuthStore } from '../../../src/store/authStore';
 import { apiClient } from '../../../src/api/client';
 import { Input } from '../../../src/components/Input';
 import Button from '../../../src/components/AppButton';
 import { Phone, ChevronRight, X, CheckCircle2 } from 'lucide-react-native';
+import { useAlert } from '../../../src/components/AlertModal';
 
 interface Lead {
   id: string;
@@ -21,6 +22,7 @@ export default function ReceptionistLeads() {
   const theme = useTheme();
   const styles = createStyles(theme);
   const { user, isAuthenticated } = useAuthStore();
+  const { showAlert, AlertDialog } = useAlert();
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -74,7 +76,7 @@ export default function ReceptionistLeads() {
     if (!selectedLead) return;
 
     if (status === 'CONVINCED' && !amount) {
-      Alert.alert('Required', 'Please enter the logged amount for this lead.');
+      showAlert({ title: 'Required', message: 'Please enter the logged amount for this lead.', variant: 'warning' });
       return;
     }
 
@@ -90,7 +92,7 @@ export default function ReceptionistLeads() {
       fetchLeads(1, true);
       setShowSuccess(true);
     } catch (error: any) {
-      Alert.alert('Error', error.response?.data?.message || 'Failed to update lead');
+      showAlert({ title: 'Error', message: error.response?.data?.message || 'Failed to update lead', variant: 'error' });
     } finally {
       setQualifying(false);
     }
@@ -224,6 +226,7 @@ export default function ReceptionistLeads() {
           </View>
         </View>
       </Modal>
+      <AlertDialog />
     </View>
   );
 }

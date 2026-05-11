@@ -1,7 +1,8 @@
 import React, { useState, useCallback, useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Modal, TextInput, ActivityIndicator, KeyboardAvoidingView, Platform, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal, TextInput, ActivityIndicator, KeyboardAvoidingView, Platform, Dimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme, Spacing, Radius } from '../../src/constants/theme';
+import { useAlert } from '../../src/components/AlertModal';
 import { useAuthStore } from '../../src/store/authStore';
 import { LogOut, Settings, User, ShieldCheck, Mail, Phone, Lock, Eye, EyeOff, CheckCircle2, X } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
@@ -15,6 +16,7 @@ export default function ProfileScreen() {
   const theme = useTheme();
   const styles = createStyles(theme);
   const { user, logout, biometricsEnabled } = useAuthStore();
+  const { showAlert, AlertDialog } = useAlert();
   const router = useRouter();
 
   const [showLogoutModal, setShowLogoutModal] = useState(false);
@@ -49,11 +51,11 @@ export default function ProfileScreen() {
 
   const handleUpdatePassword = useCallback(async () => {
     if (newPassword.length < 6) {
-      Alert.alert('Security Notice', 'Password must be at least 6 characters long.');
+      showAlert({ title: 'Security Notice', message: 'Password must be at least 6 characters long.', variant: 'warning' });
       return;
     }
     if (newPassword !== confirmPassword) {
-      Alert.alert('Mismatch', 'The passwords entered do not match.');
+      showAlert({ title: 'Mismatch', message: 'The passwords entered do not match.', variant: 'warning' });
       return;
     }
 
@@ -65,12 +67,12 @@ export default function ProfileScreen() {
         await SecureStore.setItemAsync('user_password', newPassword);
       }
 
-      Alert.alert('Success', 'Your security credentials have been updated.');
+      showAlert({ title: 'Success', message: 'Your security credentials have been updated.', variant: 'success' });
       setShowPasswordPanel(false);
       setNewPassword('');
       setConfirmPassword('');
     } catch (error: any) {
-      Alert.alert('Error', error.response?.data?.message || 'Failed to update password');
+      showAlert({ title: 'Error', message: error.response?.data?.message || 'Failed to update password', variant: 'error' });
     } finally {
       setUpdating(false);
     }
@@ -302,6 +304,7 @@ export default function ProfileScreen() {
           </View>
         </Modal>
       </LinearGradient>
+      <AlertDialog />
     </View>
   );
 }

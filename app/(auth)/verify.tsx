@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, TextInput, Platform, KeyboardAvoidingView, Dimensions, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, Platform, KeyboardAvoidingView, Dimensions, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Colors, Spacing, Radius } from '../../src/constants/theme';
 import { useAuthStore } from '../../src/store/authStore';
@@ -7,6 +7,7 @@ import { ArrowLeft, RefreshCw, ShieldCheck, Lock, Sparkles } from 'lucide-react-
 import { apiClient } from '../../src/api/client';
 import Button from '../../src/components/AppButton';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useAlert } from '../../src/components/AlertModal';
 
 const { width } = Dimensions.get('window');
 
@@ -18,6 +19,7 @@ export default function Verify() {
   const { email: emailParam } = useLocalSearchParams<{ email: string }>();
   const router = useRouter();
   const displayEmail = (user?.email || emailParam) as string;
+  const { showAlert, AlertDialog } = useAlert();
   
   const inputRefs = useRef<TextInput[]>([]);
 
@@ -57,7 +59,7 @@ export default function Verify() {
   const handleVerifyOtp = async () => {
     const otpString = otp.join('');
     if (otpString.length !== 6) {
-      Alert.alert('Invalid Code', 'Please complete the 6-digit security sequence.');
+      showAlert({ title: 'Invalid Code', message: 'Please complete the 6-digit security sequence.', variant: 'warning' });
       return;
     }
 
@@ -75,11 +77,10 @@ export default function Verify() {
         }
       }
 
-      Alert.alert('Access Granted', 'Your identity has been verified.', [
-        { text: 'Enter Dashboard', onPress: () => router.replace('/(app)') }
-      ]);
+      // Navigate directly — no alert needed, transition IS the confirmation
+      router.replace('/(app)');
     } catch (error: any) {
-      Alert.alert('Verification Failed', error.response?.data?.message || 'The security code provided is incorrect or expired.');
+      showAlert({ title: 'Verification Failed', message: error.response?.data?.message || 'The security code provided is incorrect or expired.', variant: 'error' });
     } finally {
       setVerifying(false);
     }
@@ -90,9 +91,9 @@ export default function Verify() {
     try {
       await apiClient.post('/auth/send-email-otp', { email: displayEmail });
       setTimer(60); // Longer cooldown for "elite" feel
-      Alert.alert('New Code Dispatched', 'A fresh security token has been sent to your inbox.');
+      showAlert({ title: 'Code Dispatched', message: 'A fresh security token has been sent to your inbox.', variant: 'success' });
     } catch (error) {
-      Alert.alert('Error', 'Communication with secure servers failed.');
+      showAlert({ title: 'Error', message: 'Communication with secure servers failed.', variant: 'error' });
     }
   };
 
@@ -181,6 +182,7 @@ export default function Verify() {
           </View>
         </KeyboardAvoidingView>
       </LinearGradient>
+      <AlertDialog />
     </View>
   );
 }
