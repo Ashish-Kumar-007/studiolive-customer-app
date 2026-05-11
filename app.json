@@ -24,6 +24,8 @@
       "package": "com.ashish.sahoo.studioliveapp",
       "permissions": [
         "android.permission.USE_BIOMETRIC",
+        "android.permission.USE_FINGERPRINT",
+        "android.permission.USE_BIOMETRIC",
         "android.permission.USE_FINGERPRINT"
       ]
     },
@@ -43,13 +45,17 @@
     "updates": {
       "enabled": true,
       "fallbackToCacheTimeout": 0,
-      "checkAutomatically": "ON_ERROR_RECOVERY"
+      "checkAutomatically": "ON_ERROR_RECOVERY",
+      "url": "https://u.expo.dev/e86f2d56-36bc-4ff4-8e15-677bdfa9e530"
     },
     "extra": {
       "router": {},
       "eas": {
         "projectId": "e86f2d56-36bc-4ff4-8e15-677bdfa9e530"
       }
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
     }
   }
 }
