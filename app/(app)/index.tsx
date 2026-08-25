@@ -47,7 +47,7 @@ export default function HomeScreen() {
         <View style={styles.headerLeft}>
           <Text style={styles.studioName}>StudioLive</Text>
           <View style={styles.locationContainer}>
-            <MapPin size={12} color={Colors.textLight} />
+            <MapPin size={12} color={Colors.textDim} />
             <Text style={styles.locationText}>Delhi NCR</Text>
           </View>
         </View>
@@ -135,7 +135,7 @@ const styles = StyleSheet.create({
   },
   locationText: {
     fontSize: 12,
-    color: Colors.textLight,
+    color: Colors.textDim,
   },
   scrollContent: {
     paddingBottom: Spacing.xxl,

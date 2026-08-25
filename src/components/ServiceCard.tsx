@@ -28,7 +28,7 @@ export function ServiceCard({ title, description, price, imageUrl, onPress }: Se
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: Colors.card,
+    backgroundColor: Colors.surface,
     borderRadius: 16,
     overflow: 'hidden',
     borderWidth: 1,
@@ -51,7 +51,7 @@ const styles = StyleSheet.create({
   },
   description: {
     fontSize: 14,
-    color: Colors.textLight,
+    color: Colors.textDim,
     marginBottom: 12,
     lineHeight: 20,
   },
@@ -66,11 +66,11 @@ const styles = StyleSheet.create({
   },
   priceLabel: {
     fontSize: 12,
-    color: Colors.textLight,
+    color: Colors.textDim,
   },
   price: {
     fontSize: 16,
     fontWeight: '700',
-    color: Colors.primary,
+    color: Colors.info,
   },
 });
