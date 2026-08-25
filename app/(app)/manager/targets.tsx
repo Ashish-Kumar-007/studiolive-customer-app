@@ -7,9 +7,9 @@ import {
   TouchableOpacity, 
   ActivityIndicator, 
   TextInput, 
-  Modal, 
+  Modal,
   KeyboardAvoidingView,
-  Platform
+  Platform,
 } from 'react-native';
 import { useTheme, Spacing, Radius } from '../../../src/constants/theme';
 import { apiClient } from '../../../src/api/client';
