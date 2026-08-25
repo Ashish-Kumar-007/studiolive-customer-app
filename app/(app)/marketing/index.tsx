@@ -89,7 +89,7 @@ export default function MarketingLeads() {
   };
 
   return (
-    <>
+    <View style={{ flex: 1 }}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.container}
@@ -178,7 +178,7 @@ export default function MarketingLeads() {
         )}
       </KeyboardAvoidingView>
       <AlertDialog />
-    </>
+    </View>
   );
 }
 

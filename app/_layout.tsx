@@ -32,14 +32,19 @@ export default function RootLayout() {
 
     const needsVerification = user?.emailVerified === false;
 
+    console.log(`[NAV] Segment: ${segmentPath || 'root'}, Auth: ${isAuthenticated}, Initialized: ${isInitialized}, User: ${user?.email}, Verified: ${user?.emailVerified}`);
+
     if (!isAuthenticated) {
       if (!inAuthGroup) {
+        console.log('[NAV] Redirecting to login...');
         router.replace('/(auth)/login');
       }
     } else {
       if (needsVerification && segmentPath !== '(auth)/verify') {
+        console.log('[NAV] Redirecting to verify...');
         router.replace('/(auth)/verify');
       } else if (!needsVerification && !inAppGroup) {
+        console.log('[NAV] Redirecting to app dashboard...');
         router.replace('/(app)');
       }
     }
