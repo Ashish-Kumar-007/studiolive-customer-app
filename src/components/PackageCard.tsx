@@ -51,7 +51,7 @@ export function PackageCard({ name, price, duration, features, isPopular = false
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: Colors.card,
+    backgroundColor: Colors.surface,
     borderRadius: 16,
     padding: 20,
     borderWidth: 1,
@@ -59,14 +59,14 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   popularCard: {
-    borderColor: Colors.primary,
+    borderColor: Colors.info,
     borderWidth: 2,
   },
   badge: {
     position: 'absolute',
     top: -12,
     right: 20,
-    backgroundColor: Colors.primary,
+    backgroundColor: Colors.info,
     paddingHorizontal: 12,
     paddingVertical: 4,
     borderRadius: 12,
@@ -93,7 +93,7 @@ const styles = StyleSheet.create({
   },
   duration: {
     fontSize: 14,
-    color: Colors.textLight,
+    color: Colors.textDim,
   },
   divider: {
     height: 1,
@@ -124,8 +124,8 @@ const styles = StyleSheet.create({
     borderColor: Colors.border,
   },
   popularButton: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
+    backgroundColor: Colors.info,
+    borderColor: Colors.info,
   },
   buttonText: {
     fontSize: 16,

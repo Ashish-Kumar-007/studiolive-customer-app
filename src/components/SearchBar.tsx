@@ -20,11 +20,11 @@ export function SearchBar({
 }: SearchBarProps) {
   return (
     <View style={styles.container}>
-      <Search size={20} color={Colors.textLight} style={styles.icon} />
+      <Search size={20} color={Colors.textDim} style={styles.icon} />
       <TextInput
         style={styles.input}
         placeholder={placeholder}
-        placeholderTextColor={Colors.textLight}
+        placeholderTextColor={Colors.textDim}
         value={value}
         onChangeText={onChangeText}
         onPressIn={onPress}
@@ -39,7 +39,7 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.card,
+    backgroundColor: Colors.surface,
     borderRadius: 12,
     paddingHorizontal: 16,
     height: 48,

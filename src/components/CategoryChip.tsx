@@ -25,14 +25,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
-    backgroundColor: Colors.card,
+    backgroundColor: Colors.surface,
     marginRight: 8,
     borderWidth: 1,
     borderColor: Colors.border,
   },
   activeChip: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
+    backgroundColor: Colors.info,
+    borderColor: Colors.info,
   },
   text: {
     color: Colors.text,

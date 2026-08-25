@@ -89,6 +89,8 @@ export default function TaskDetailsScreen() {
     }
   };
 
+  const accentColor = task?.type === 'SHOOT' ? theme.videographer : theme.info;
+
   return (
     <View style={styles.container}>
       {loading ? (
