@@ -71,7 +71,7 @@ export default function ServiceDetailScreen() {
                 duration={pkg.duration}
                 features={pkg.features}
                 isPopular={pkg.isPopular}
-                onSelect={() => {}}
+                onSelect={() => router.push(`/booking/${id}?packageId=${pkg.id}`)}
               />
             ))}
           </View>
