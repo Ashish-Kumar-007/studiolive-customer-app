@@ -69,3 +69,19 @@ You can log in directly using the **Demo Login Grid** on the authentication scre
 
 ---
 *Built with ❤️ by the StudioLive Team.*
+
+## 📈 Development Roadmap & Phases
+*Current Status: Completed Phase 6. Moving to Phase 7.*
+
+- [x] **Phase 1:** Project Setup (Expo, Routing, API Client, Theme)
+- [x] **Phase 2:** Discovery (Home, Search, Categories, Services, Projects)
+- [x] **Phase 3:** Configuration (Packages, Customization)
+- [x] **Phase 4:** Scheduling (Availability, Booking flow UI)
+- [x] **Phase 5:** Authentication Implementation (AWS SNS OTP)
+- [x] **Phase 6:** Commerce Core (Payments, Razorpay, Checkout)
+- [ ] **Phase 7:** Physical Products (Shop, Cart, Orders)
+- [ ] **Phase 8:** Tracking (Booking/Order timelines, Notifications)
+- [ ] **Phase 9:** Post-Shoot (Private Galleries, S3 integration, Selection)
+- [ ] **Phase 10:** Value-Add (Albums, Prints, Customization)
+- [ ] **Phase 11:** Growth (Personalization, Rebooking, Recommendations)
+- [ ] **Phase 12:** Polish (Analytics, Performance, Security, A11y, Hardening)
