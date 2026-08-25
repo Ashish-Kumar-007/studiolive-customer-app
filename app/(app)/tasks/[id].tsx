@@ -49,6 +49,7 @@ export default function TaskDetailsScreen() {
   const [showSuccess, setShowSuccess] = useState(false);
   const [lastUpdatedStatus, setLastUpdatedStatus] = useState('');
   const router = useRouter();
+  const accentColor = task?.type === 'SHOOT' ? theme.videographer : theme.editor;
 
   const fetchTask = async () => {
     if (!id) return;

@@ -8,6 +8,8 @@ import {
   ActivityIndicator, 
   TextInput, 
   Modal, 
+  KeyboardAvoidingView,
+  Platform
 } from 'react-native';
 import { useTheme, Spacing, Radius } from '../../../src/constants/theme';
 import { apiClient } from '../../../src/api/client';
@@ -88,7 +90,7 @@ export default function TargetManagement() {
       }
       
       showSuccess({ title: 'Target Assigned!', message: `${period} target has been set successfully.`, detail: selectedUser.name });
-      setTargetValue('');
+      setTargetCount('');
       setSelectedUser(null);
       setSelectedUser(null);
       fetchStaff();
