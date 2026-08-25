@@ -23,7 +23,7 @@ export default function AppLayout() {
           paddingTop: 8,
           borderTopWidth: 1,
         },
-        tabBarActiveTintColor: theme.primary,
+        tabBarActiveTintColor: theme.info,
         tabBarInactiveTintColor: theme.textDark,
         tabBarLabelStyle: {
           fontSize: 10,
