@@ -25,12 +25,15 @@ export default function BookingScreen() {
       return;
     }
     
-    // Proceed to next step (Auth or Checkout)
-    Alert.alert(
-      'Booking Initiated', 
-      `Proceeding to checkout for ${selectedDate} at ${selectedTime}`,
-      [{ text: 'OK' }]
-    );
+    // Proceed to checkout screen
+    router.push({
+      pathname: `/checkout/${id}`,
+      params: { 
+        packageId,
+        date: selectedDate,
+        time: selectedTime
+      }
+    });
   };
 
   return (
