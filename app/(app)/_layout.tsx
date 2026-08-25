@@ -1,22 +1,9 @@
 import { Tabs } from 'expo-router';
 import { useTheme } from '../../src/constants/theme';
-import { useAuthStore } from '../../src/store/authStore';
-import { LayoutDashboard, UserPlus, ClipboardList, CheckCircle2, CircleDollarSign, Target, User } from 'lucide-react-native';
-import { NotificationBell } from '../../src/components/NotificationBell';
+import { LayoutDashboard, Store, User } from 'lucide-react-native';
 
 export default function AppLayout() {
   const theme = useTheme();
-  const { user } = useAuthStore();
-  const role = user?.role;
-
-  const activeTint =
-    role === 'MARKETING'
-      ? theme.marketing
-      : role === 'RECEPTIONIST'
-        ? theme.receptionist
-        : role === 'VIDEOGRAPHER' || role === 'EDITOR'
-          ? theme.videographer
-          : theme.manager;
 
   return (
     <Tabs
@@ -28,7 +15,6 @@ export default function AppLayout() {
           backgroundColor: theme.background,
         },
         headerTintColor: theme.text,
-        headerRight: () => <NotificationBell />,
         tabBarStyle: {
           backgroundColor: theme.surface,
           borderTopColor: theme.border,
@@ -37,7 +23,7 @@ export default function AppLayout() {
           paddingTop: 8,
           borderTopWidth: 1,
         },
-        tabBarActiveTintColor: activeTint,
+        tabBarActiveTintColor: theme.primary,
         tabBarInactiveTintColor: theme.textDark,
         tabBarLabelStyle: {
           fontSize: 10,
@@ -46,7 +32,6 @@ export default function AppLayout() {
         },
       }}
     >
-      {/* 1. Shared / Home */}
       <Tabs.Screen
         name="index"
         options={{
@@ -56,101 +41,20 @@ export default function AppLayout() {
         }}
       />
 
-      {/* Leads (Admin/Manager/Marketing/Receptionist) */}
       <Tabs.Screen
-        name="leads/index"
+        name="shop/index"
         options={{
-          title: 'Leads',
-          headerTitle: 'LEAD DIRECTORY',
-          tabBarIcon: ({ color, size }) => <ClipboardList color={color} size={size} />,
-          href:
-            role === 'ADMIN' || role === 'MANAGER' || role === 'MARKETING' || role === 'RECEPTIONIST'
-              ? '/leads'
-              : null,
-        }}
-      />
-
-      {/* Marketing Only */}
-      <Tabs.Screen
-        name="marketing/index"
-        options={{
-          title: 'Add Lead',
-          headerTitle: 'REGISTER LEAD',
-          tabBarIcon: ({ color, size }) => <UserPlus color={color} size={size} />,
-          href: role === 'MARKETING' ? '/marketing' : null,
-        }}
-      />
-
-      <Tabs.Screen
-        name="target/index"
-        options={{
-          title: 'Target',
-          headerTitle: 'MY GOALS',
-          tabBarIcon: ({ color, size }) => <Target color={color} size={size} />,
-          href: role === 'MARKETING' ? '/target' : null,
-        }}
-      />
-
-      {/* Receptionist Only */}
-      <Tabs.Screen
-        name="receptionist/index"
-        options={{
-          title: 'Qualify',
-          headerTitle: 'QUALIFICATION QUEUE',
-          tabBarIcon: ({ color, size }) => <ClipboardList color={color} size={size} />,
-          href: role === 'RECEPTIONIST' ? '/receptionist' : null,
-        }}
-      />
-
-      {/* Admin & Manager Only - Hidden from navbar, accessible from Dashboard */}
-      <Tabs.Screen
-        name="team/index"
-        options={{
-          href: null,
-        }}
-      />
-
-      <Tabs.Screen
-        name="reporting/index"
-        options={{
-          title: 'Reports',
-          headerTitle: 'BUSINESS INSIGHTS',
-          tabBarIcon: ({ color, size }) => <CircleDollarSign color={color} size={size} />,
-          href: role === 'ADMIN' || role === 'MANAGER' ? '/reporting' : null,
-        }}
-      />
-
-      {/* Production Only */}
-      <Tabs.Screen
-        name="tasks/index"
-        options={{
-          title: 'Tasks',
-          headerTitle: 'PRODUCTION TASKS',
-          tabBarIcon: ({ color, size }) => <CheckCircle2 color={color} size={size} />,
-          href: role === 'VIDEOGRAPHER' || role === 'EDITOR' || role === 'ADMIN' || role === 'MANAGER' ? '/tasks' : null,
-        }}
-      />
-
-      {/* 7. Shared / Profile */}
-      <Tabs.Screen
-        name="profile"
-        options={{
-          title: 'Profile',
-          headerTitle: 'MY PROFILE',
-          tabBarIcon: ({ color, size }) => <User color={color} size={size} />,
-          href: '/profile',
+          title: 'Shop',
+          headerTitle: 'STUDIO PRODUCTS',
+          tabBarIcon: ({ color, size }) => <Store color={color} size={size} />,
         }}
       />
 
       {/* Hide non-tab routes from the bottom bar */}
-      <Tabs.Screen name="leads/[id]" options={{ href: null }} />
-      <Tabs.Screen name="tasks/[id]" options={{ href: null }} />
-      <Tabs.Screen name="tasks/calendar" options={{ href: null }} />
-      <Tabs.Screen name="notifications/index" options={{ href: null }} />
-      <Tabs.Screen name="settings" options={{ href: null }} />
-      <Tabs.Screen name="manager/assign" options={{ href: null }} />
-      <Tabs.Screen name="manager/targets" options={{ href: null }} />
-      <Tabs.Screen name="marketing/leads" options={{ href: null }} />
+      <Tabs.Screen name="booking/[id]" options={{ href: null, headerShown: false }} />
+      <Tabs.Screen name="checkout/[id]" options={{ href: null, headerShown: false }} />
+      <Tabs.Screen name="cart/index" options={{ href: null, headerShown: false }} />
+      <Tabs.Screen name="service/[id]" options={{ href: null, headerShown: false }} />
     </Tabs>
   );
 }
